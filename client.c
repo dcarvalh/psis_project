@@ -11,11 +11,11 @@
 #include <string.h>
 
 
-int void main (){
+int main (){
 
 //int gallery_connect(char *host, in_port_t port);
 
-int sock_fd;                      //UDP Socket that will comunicate with the gateway
+int sock_fd_gateway;                      //UDP Socket that will comunicate with the gateway
 struct sockaddr_in local_addr;
 struct sockaddr_in gateway_addr;
 struct sockaddr_in peer_addr;
@@ -49,20 +49,36 @@ message m;
 
   printf("Datagram socket created and binded\n");
 
-  size_addr = sizeof(client_addr);
+  size_addr = sizeof(gateway_addr);
+
+  //Message of type 0 that tells the gateway that th client is looking for a server
+  m.message_type = 0;
 
   buff =(char *) malloc(sizeof (m));
   memcpy(buff, &m, sizeof(m));
 
   //Enviar mensagem para gateway
   nbytes = sendto(sock_fd, buff, sizeof(m), 0,
-                	  (const struct sockaddr *) &gateway_addr,sizeof(gateway_addr));
+                	  (struct sockaddr *) &gateway_addr,size_addr);
+  if(nbytes == -1){
+    perror("Sending");
+    exit(-1);
+  }
 
-  printf("bytes sent: %d \n", nbytes);
+  buff =  (char*)malloc(sizeof (m));
+  nbytes = recv(sock_fd, buff ,sizeof (message), 0);
+  if(nbytes == -1){
+    perror("Reciving");
+    exit(-1);
+  }
+
+
+  memcpy(&m, buff, sizeof(message));
+  free(buff);
+
 
   close(sock_fd);
-
-  printf("OK \n");
+  printf("Addr: %s \nPort: %d\n", m.addr, m.port);
 
   exit(0);
 }

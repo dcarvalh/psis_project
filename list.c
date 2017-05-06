@@ -9,6 +9,13 @@ struct list{    //List that will store server information
   struct list *next;
 };
 
+///////////////////////////////
+struct message{             //
+  char addr[MESSAGE_LEN];  //
+  int message_type;       //
+  int port;              //
+};                      //
+/////////////////////////
 peerlist * InitList(void)
 {
   peerlist * new;
@@ -60,3 +67,13 @@ void PrintList(peerlist * head)
 
 	return;
 }
+
+///////////////////////////////////////////////
+message FillMessage(peerlist *head){        //
+  message m;                               //
+  strcpy(m.addr, head->ip);               //
+  m.port = head->port;                   //
+                                        //
+  return m;                            //
+}                                     //
+///////////////////////////////////////

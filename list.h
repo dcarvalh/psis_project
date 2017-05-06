@@ -2,7 +2,7 @@
 
 typedef struct list peerlist;
 
-
+typedef struct message message;
 
 peerlist * InitList(void);
 
@@ -10,6 +10,9 @@ peerlist * NewPeer(peerlist * head, char newip[MESSAGE_LEN], int newport);
 
 void PrintList(peerlist * head);
 
+////////////////////////////////////////
+message FillMessage(peerlist *head);  // 
+///////////////////////////////////////
 /*
 ListaNomes * FindName(ListaNomes * NameList, char Name[30]);
 

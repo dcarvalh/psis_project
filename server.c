@@ -46,7 +46,7 @@ int main (){
 
   m.port=3001;
   m.message_type= 1;
-  sprintf(m.addr,"127.0.0.2");
+  sprintf(m.addr,"127.0.0.1");
 
   printf("\nSent:\n");
   printf("%d \n", m.message_type);
@@ -66,6 +66,7 @@ int main (){
   printf("bytes sent: %d \n", nbytes);
 
   close(sock_fd);
+  free(buff);
 
   printf("OK \n");
 

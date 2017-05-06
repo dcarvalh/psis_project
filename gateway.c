@@ -1,4 +1,6 @@
 #include "message.h"
+#include "list.h"
+
 #include <ctype.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -10,16 +12,17 @@
 #include <signal.h>
 #include <string.h>
 #include <pthread.h>
-#include "list.h"
+
 
 //Global variables
 
 peerlist * head;    //Head pointer to list
 int sock_fd_peer;   //Peer communication socket
 int sock_fd_client; //Client communication socket
+int end = 1;        //Variable that decides teh end of the program
+
 void *cli_com();    //Code that the thread that comunicates with the client will run
 void *peer_com();   //Code that the thread that comunicates with the peers will run
-
 //Code that will be run when the Ctrl+C signal is recived(safe exit)
 static void handle(int sig, siginfo_t *siginfo,void *context);
 
@@ -28,7 +31,7 @@ int main(){
   pthread_t thread_c, thread_p;
   int iret_c, iret_p;
 
-  //Sigaction Inicialazation
+  //Sigaction Initialization
   memset (&act, '\0', sizeof(act));
   act.sa_sigaction = & handle;
   act.sa_flags = SA_SIGINFO;
@@ -52,18 +55,27 @@ int main(){
     exit(-1);
   }
 
-  //Peer List Inicialazation
+  //Peer List Initialization
   head=InitList();
 
-  while(cicle = 1);//Cicle so the main doesn't end and the threads keep running
+  while(end);//Cicle so the main doesn't end and the threads keep running
 
-  return 0;
+  close(sock_fd_client);
+  close(sock_fd_peer);
+  printf("\nClosing Gateway\n");
+  printf("Thank you for your visit\n");
+  exit (0);
 }//end of main!
 
 void *cli_com(){
-  //É melhor dar nomes diferentes para não dar merda
+  //É melhor dar nome diferentes para nao dar merda(nunca vai dar porque o para dar tinah que ser defenido globalmente)
+  socklen_t size_addr;
+  int nbytes;                    //Number of bytes recived or sent
+  message m ;                    //Struture that will handle the messages
+  char *buff;
+
   struct sockaddr_in local_addr; //Gateway's adress
-  //struct sockaddr_in client_addr; //Client Adress
+  struct sockaddr_in client_addr; //Client Adress
 
   //Creating Datagram socket that will comunicate with the client
   sock_fd_client = socket (AF_INET, SOCK_DGRAM, 0);
@@ -83,22 +95,49 @@ void *cli_com(){
     exit(-1);
   }
 
-  sleep(10);
+  size_addr = sizeof(client_addr);
 
-  PrintList(head);
+  while(1){
 
-  return 0;
+  buff =  (char*)malloc(sizeof (m));
+  nbytes = recvfrom(sock_fd_client, buff ,sizeof (message), 0,
+                    (struct sockaddr *) &client_addr, &size_addr);
+  if(nbytes == -1){
+    perror("Reciving");
+    exit(-1);
+  }
 
-}
+  memcpy(&m, buff, sizeof(message));
+  free(buff);
+
+  printf("\nmessage_type: %d\n", m.message_type);
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////
+    //If the client wants to know the data of a peer to connect, message_type = 0
+    if(m.message_type == 0){
+
+      //Passing the server data stored in the list to a structure of type message
+      m = FillMessage(head);
+
+      buff =(char *) malloc(sizeof (m));                                       // VE ESTA PARTE!A PARTE DO RECVFROM TA TODA OF E A DO CLIENT TAMBEM
+      memcpy(buff, &m, sizeof(m));                                             //O PROBLEMA ERA A ENVIAR, QUE NAO CONSEGUI PASSAR AS CENAS DO HEAD
+                                                                               //DIRECTAMENTE PARA O M.ADDR E PARA O M.PORT, QUE DIZIA QUE LISTPEER ESTAVA UNDEFINED
+      //Sending message to gateway
+      nbytes = sendto(sock_fd_client, buff, sizeof(m), 0,
+                  	  (struct sockaddr *) &client_addr, size_addr);
+      if(nbytes == -1){
+        perror("Sending");
+        exit(-1);
+      }
+      /////////////////////////////////////////////////////////////////////////////////////////////////
+    }
+  }
+}//End of Client Communication
 void *peer_com(){
-
-  socklen_t size_addr;
-  int nbytes;
-
-  message m ;
+  int nbytes;                    //Nuber of bytes recived or sent
+  message m ;                    //Struture that will handle the messages
   char * buff;
   struct sockaddr_in local_addr; //Gateway's adress
-  struct sockaddr_in peer_addr; //Peer Adress
 
   //Creating Datagram Socket that will comunicate with the server
   sock_fd_peer =socket(AF_INET, SOCK_DGRAM, 0);
@@ -124,37 +163,26 @@ void *peer_com(){
   //Cicle that runs the gateway's Peer UPD connection
   while(1){
 
-    size_addr = sizeof(peer_addr);
-
     buff =  (char*)malloc(sizeof (m));
     nbytes = recv(sock_fd_peer, buff ,sizeof (message), 0);
+    if(nbytes == -1){
+      perror("Reciving");
+      exit(-1);
+    }
 
     /*Copying the memory of the recived buffer to the location of the
       memory location of the structure m*/
     memcpy(&m, buff, sizeof(message));
     free(buff);
 
-    printf("Recived:\n");
-    printf("%d \n", m.message_type);
-    printf("%s \n", m.addr);
-    printf("%d \n\n", m.port);
-    //inet_aton
-    printf("ip: %s\n", inet_ntoa(peer_addr.sin_addr));
-    strcpy(m.addr,inet_ntoa(peer_addr.sin_addr));
+    if(m.message_type == 1){
 
-
-
-    //insere na lista
-    head=NewPeer(head, m.addr, m.port);
-    PrintList(head);
-
+      //Insertion of the Peer in the peer list
+      head=NewPeer(head, m.addr, m.port);
     }
-
-}
-
+  }
+}//End of peer communication
+//Sigaction handler, aka, interruption that will kill the program safelly by pressing Ctrl+C
 static void handle(int sig, siginfo_t *siginfo,void *context){
-  printf("\nClosing Gateway, bye bye :(\n");
-  close(sock_fd_peer);
-  close(sock_fd_client);
-  exit(0);
+  end = 0;
 }
