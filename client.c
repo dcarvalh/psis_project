@@ -18,15 +18,15 @@ int main (){
 int sock_fd_gateway;                      //UDP Socket that will comunicate with the gateway
 struct sockaddr_in local_addr;
 struct sockaddr_in gateway_addr;
-struct sockaddr_in peer_addr;
+//struct sockaddr_in peer_addr;
 socklen_t size_addr;
 char *buff;
 int nbytes;
 message m;
 
 //Socket that comunicates with Gateway
-  int sock_fd =socket(AF_INET, SOCK_DGRAM,0);
-  if(sock_fd==-1){
+  sock_fd_gateway =socket(AF_INET, SOCK_DGRAM,0);
+  if(sock_fd_gateway==-1){
     perror("Socket:");
     exit(-1);
   }
@@ -41,7 +41,7 @@ message m;
   gateway_addr.sin_port = htons(3001);
   gateway_addr.sin_addr.s_addr=inet_addr("127.0.0.1");
 
-  int err = bind(sock_fd,(struct sockaddr *)&local_addr, sizeof(local_addr));
+  int err = bind(sock_fd_gateway,(struct sockaddr *)&local_addr, sizeof(local_addr));
   if (err==-1){
     perror("Binding:");
     exit(-1);
@@ -58,27 +58,33 @@ message m;
   memcpy(buff, &m, sizeof(m));
 
   //Enviar mensagem para gateway
-  nbytes = sendto(sock_fd, buff, sizeof(m), 0,
+  nbytes = sendto(sock_fd_gateway, buff, sizeof(m), 0,
                 	  (struct sockaddr *) &gateway_addr,size_addr);
   if(nbytes == -1){
     perror("Sending");
     exit(-1);
   }
 
-  buff =  (char*)malloc(sizeof (m));
-  nbytes = recv(sock_fd, buff ,sizeof (message), 0);
+  nbytes = recv(sock_fd_gateway, buff ,sizeof(m), 0);
   if(nbytes == -1){
     perror("Reciving");
     exit(-1);
   }
 
 
-  memcpy(&m, buff, sizeof(message));
+  memcpy(&m, buff, sizeof(m));
   free(buff);
 
+  if (m.message_type==0){
+    printf("Peer recived:\n");
+    printf("%s \n", m.addr);
+    printf("%d \n\n", m.port);
+  }else{
+    printf("No peers available :(\n");
+  }
 
-  close(sock_fd);
-  printf("Addr: %s \nPort: %d\n", m.addr, m.port);
 
+
+  close(sock_fd_gateway);
   exit(0);
 }

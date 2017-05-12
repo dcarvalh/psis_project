@@ -9,13 +9,6 @@ struct list{    //List that will store server information
   struct list *next;
 };
 
-///////////////////////////////
-struct message{             //
-  char addr[MESSAGE_LEN];  //
-  int message_type;       //
-  int port;              //
-};                      //
-/////////////////////////
 peerlist * InitList(void)
 {
   peerlist * new;
@@ -55,25 +48,70 @@ void PrintList(peerlist * head)
 	aux = head;
 
 	if(aux == NULL){
-		printf("Lista Vazia!\n");
+		printf("\nNo existing Peers\n");
 	}else{
-    printf("---------------Lista-------------\n");
+    printf("\nExisting Peers:\n");
     do{
     printf("IP: %s \n Port: %d\n",aux->ip, aux->port);
     aux=aux->next;
     }while(aux != head);
 	}
-	printf("-------------Fim da Lista-------------\n");
 
 	return;
 }
 
-///////////////////////////////////////////////
-message FillMessage(peerlist *head){        //
-  message m;                               //
-  strcpy(m.addr, head->ip);               //
-  m.port = head->port;                   //
-                                        //
-  return m;                            //
-}                                     //
-///////////////////////////////////////
+void FreeList(peerlist * head)
+{
+	peerlist *aux, *aux2;
+
+  if(head!=NULL){
+    aux=head->next;
+    while(aux != head){
+      aux2=aux->next;
+      free(aux);
+      aux=aux2;
+    }
+    free(head);
+  }
+
+	return;
+}
+
+char *GiveIP(peerlist * head){
+	return head->ip;
+}
+
+int GivePort(peerlist * head){
+	return head->port;
+}
+
+peerlist* NextPeer(peerlist *head){
+	head = head->next;
+	return head;
+}
+
+int CountPeers(peerlist *head){
+  peerlist *aux;
+  aux = head;
+  int count=0;
+
+  if(aux == NULL){
+    return count;
+  }else{
+    do{
+    ++count;
+    aux=aux->next;
+    }while(aux != head);
+  }
+  return count;
+}
+
+/*char *GiveIP(ListaNomes *NameList, char *clientip){
+	int n;
+
+	n= sizeof(NameList->name);
+	clientip = (char *) malloc(n+1);
+	strcpy(clientip, NameList->ip);
+	return clientip;
+}
+*/

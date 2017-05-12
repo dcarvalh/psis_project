@@ -2,7 +2,7 @@
 
 typedef struct list peerlist;
 
-typedef struct message message;
+/*typedef struct message message;*/
 
 peerlist * InitList(void);
 
@@ -10,8 +10,19 @@ peerlist * NewPeer(peerlist * head, char newip[MESSAGE_LEN], int newport);
 
 void PrintList(peerlist * head);
 
+void FreeList(peerlist * head);
+
+char *GiveIP(peerlist * head);
+
+int GivePort(peerlist * head);
+
+peerlist* NextPeer(peerlist *head);
+
+int CountPeers(peerlist *head);
+
+
 ////////////////////////////////////////
-message FillMessage(peerlist *head);  // 
+/*message FillMessage(peerlist *head);  /*/
 ///////////////////////////////////////
 /*
 ListaNomes * FindName(ListaNomes * NameList, char Name[30]);
