@@ -83,8 +83,38 @@ message m;
     printf("No peers available :(\n");
   }
 
+///////////////////////////////////////////////////////////////////////////////
 
+  /*TCP connection */
+  struct sockaddr_in server_addr;
+  server_addr.sin_family = AF_INET;
+  // these values can be read from the keyboard
+  server_addr.sin_port= htons(m.port);
+  inet_aton(m.addr, &server_addr.sin_addr);
+
+  int sock_fd_server= socket(AF_INET, SOCK_STREAM, 0);
+  if(sock_fd_server == -1){
+    perror("error creating socket \n");
+  	exit(-1);
+  }
+
+  if( -1 == connect(sock_fd_server, (struct sockaddr *)&server_addr, sizeof(server_addr)) ){
+    printf("Error connecting\n");
+    exit(-1);
+  }
+
+  printf("TCP socket created and sucsessefully connected\n");
+
+  char buffer[MESSAGE_LEN];
+  fgets(buffer, MESSAGE_LEN, stdin);
+
+  send(sock_fd_server, buffer, sizeof(buffer), 0);
+  //receive story
+  recv(sock_fd_server, buffer, sizeof(buffer), 0);
+
+  printf("%s\n",buffer);
 
   close(sock_fd_gateway);
+  close(sock_fd_server);
   exit(0);
 }
