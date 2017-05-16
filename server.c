@@ -37,22 +37,9 @@ int main (){
   gateway_addr.sin_port = htons(3002);
   gateway_addr.sin_addr.s_addr=inet_addr("127.0.0.1");
 
-  //criar socket TPC e bind
-  new_cli_sock = socket(AF_INET, SOCK_STREAM, 0);
-  if (new_cli_sock == -1){
-    perror("error creating socket \n ");
-    exit(-1);
-  }
-
-  int err = bind(sock_gateway_fd,(struct sockaddr *)&local_addr, sizeof(local_addr));
-  if (err==-1){
-    perror("Binding:");
-    exit(-1);
-  }
-
   printf("Datagram socket created and binded\n");
 
-  m.port=3001;
+  m.port=ntohs(local_addr.sin_port);
   m.message_type= 1;
   sprintf(m.addr,"127.0.0.1");
 
@@ -77,26 +64,39 @@ int main (){
   free(buff);
 
   //TCP
-  listen(local_addr, MAX_WAIT_LIST);
+
+  //criar socket TPC e bind
+
+  int sock_TCP = socket(AF_INET, SOCK_STREAM, 0);
+  if (sock_TCP == -1){
+    perror("error creating socket \n ");
+    exit(-1);
+  }
+
+  int err = bind(sock_TCP,(struct sockaddr *)&local_addr, sizeof(local_addr));
+  if (err==-1){
+    perror("Binding:");
+    exit(-1);
+  }
+
+
+  listen(sock_TCP, MAX_WAIT_LIST);
 
   char buffer[20];
 
-  while(1){
 
-    int new_cli_sock = accept(local_addr, (struct sockaddr *) & client_addr, &addrlen);
+
+    int new_cli_sock = accept(sock_TCP, (struct sockaddr *) & client_addr, &addrlen);
     printf("aceite!\n");
     //Read message
     recv(new_cli_sock, buffer, sizeof(buffer), 0);
     printf("%s\n", buffer);
     //Sends story
-    fgets
+    fgets(buffer, MESSAGE_LEN, stdin);
     send(new_cli_sock, buffer, sizeof(buffer), 0);
     close(new_cli_sock);
 
-
-  }
-
-
+  close(sock_TCP);
 
   return 0;
 }
