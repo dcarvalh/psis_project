@@ -33,7 +33,7 @@ message m;
 
   //Incialização da local address
   local_addr.sin_family = AF_INET;
-  local_addr.sin_port = htons(2999);
+  local_addr.sin_port = htons(getpid());
   local_addr.sin_addr.s_addr=INADDR_ANY;
 
   //Incialização da local address
@@ -104,16 +104,16 @@ message m;
   }
 
   printf("TCP socket created and sucsessefully connected\n");
+  while(1){
+    char buffer[MESSAGE_LEN];
+    fgets(buffer, MESSAGE_LEN, stdin);
 
-  char buffer[MESSAGE_LEN];
-  fgets(buffer, MESSAGE_LEN, stdin);
+    send(sock_fd_server, buffer, sizeof(buffer), 0);
+    //receive story
+    recv(sock_fd_server, buffer, sizeof(buffer), 0);
 
-  send(sock_fd_server, buffer, sizeof(buffer), 0);
-  //receive story
-  recv(sock_fd_server, buffer, sizeof(buffer), 0);
-
-  printf("%s\n",buffer);
-
+    printf("%s\n",buffer);
+  }
   close(sock_fd_gateway);
   close(sock_fd_server);
   exit(0);
