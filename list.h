@@ -20,6 +20,7 @@ peerlist* NextPeer(peerlist *head);
 
 int CountPeers(peerlist *head);
 
+void RemovePeer(peerlist *head, char r_port[MESSAGE_LEN], int r_ip);
 
 ////////////////////////////////////////
 /*message FillMessage(peerlist *head);  /*/

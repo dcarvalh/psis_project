@@ -73,7 +73,6 @@ int main(){
 
 
 void *cli_com(){
-  //É melhor dar nome diferentes para nao dar merda; (nunca vai dar porque o para dar tinah que ser defenido globalmente) ; good point
   socklen_t size_addr;
   int nbytes;                    //Number of bytes recived or sent
   message m ;                    //Struture that will handle the messages
@@ -158,10 +157,6 @@ void *cli_com(){
   }
 }//End of Client Communication thread
 
-
-
-
-
 void *peer_com(){
   int nbytes;                    //Nuber of bytes recived or sent
   message m ;                    //Struture that will handle the messages
@@ -212,6 +207,10 @@ void *peer_com(){
       head=NewPeer(head, m.addr, m.port);
 
     }
+    if(m.message_type == -1){
+        RemovePeer(head, m.addr, m.port);
+        PrintList(head);
+      }
   }
 }//End of peer communication
 

@@ -106,6 +106,41 @@ int CountPeers(peerlist *head){
   return count;
 }
 
+void RemovePeer(peerlist *head, char r_ip[MESSAGE_LEN], int r_port){
+    peerlist *aux, *aux2;
+    aux = head;
+    aux2=head->next;
+
+    if(head->next==head){ //If head is the only server in te listen
+      printf("Only head in list\n");
+      free(head);
+      head=NULL;
+      return;
+    }else{
+      if(head->port == r_port && strcmp(head->ip,r_ip)==0){//Freeing the head peer
+          for(aux2=head->next; aux2->next!=head; aux2=aux2->next);
+          aux2->next = head;
+          head = head->next;
+          printf("Releasing head\n");
+          free(aux);
+          return;
+      }else{  //Freeing non-head peer
+        while( aux2 != head){
+          aux=aux2;
+          aux2=aux2->next;
+
+          if((aux2->port==r_port && strcmp(aux2->ip, r_ip)==0)){
+            aux->next  = aux2->next;
+            free(aux2);
+            printf("Releasing non-head peer\n");
+            return;
+          }
+        }
+      }
+    }
+    printf("Peer not in list!\n");
+    return;
+}
 /*char *GiveIP(ListaNomes *NameList, char *clientip){
 	int n;
 

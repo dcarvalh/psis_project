@@ -1,5 +1,5 @@
 # Makefile
-CC=gcc 
+CC=gcc
 TARGET1=gateway
 TARGET2=server
 TARGET3=client
@@ -17,7 +17,7 @@ $(TARGET1): $(OBJFILES1)
 	$(CC) $(CFLAGS) -o $(TARGET1) $(OBJFILES1) $(THREAD)
 
 $(TARGET2): $(OBJFILES2)
-	$(CC) $(CFLAGS) -o $(TARGET2) $(OBJFILES2)
+	$(CC) $(CFLAGS) -o $(TARGET2) $(OBJFILES2) $(THREAD)
 
 $(TARGET3): $(OBJFILES3)
 	$(CC) $(CFLAGS) -o $(TARGET3) $(OBJFILES3)
