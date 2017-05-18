@@ -72,7 +72,7 @@ int main (){
 //Filling uo the structure to sent the Gateway
   m.port=ntohs(local_addr.sin_port);
   m.message_type= 1;
-  strcpy(m.addr, inet_ntoa(local_addr.sin_addr));
+  strcpy(m.addr, "127.0.0.1");
 
   printf("\nSent:\n");
   printf("%d \n", m.message_type);
