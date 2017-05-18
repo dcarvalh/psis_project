@@ -12,6 +12,9 @@
 #include <string.h>
 #include <pthread.h>
 
+//Initialization of the mutex synco
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
 //Global variables
 peerlist * head;    //Head pointer to list
 int sock_fd_peer;   //Peer communication socket
@@ -118,12 +121,16 @@ void *cli_com(){
 
     //If the client wants to know the data of a peer to connect, message_type = 0
     if(m.message_type == 0){
+      //Locking thread acessebility to the list
+      pthread_mutex_lock(&mutex);
       if(CountPeers(head)>0){
 
         //Passing the server data stored in the list to a structure of type message
         strcpy(m.addr, GiveIP(head));
         m.port = GivePort(head);
         head = NextPeer(head);
+        //Unlocking thread acessebility to the list
+        pthread_mutex_unlock(&mutex);
 
         printf("Sent to client:\n");
         printf("%s \n", m.addr);
@@ -203,17 +210,20 @@ void *peer_com(){
       printf("%s \n", m.addr);
       printf("%d \n\n", m.port);
 
+      pthread_mutex_lock(&mutex);
       //Insertion of the Peer in the peer list
       head=NewPeer(head, m.addr, m.port);
-
+      pthread_mutex_unlock(&mutex);
     }
     if(m.message_type == -1){
       printf("Remove Peer:\n");
       printf("%s \n", m.addr);
       printf("%d \n\n", m.port);
 
+      pthread_mutex_lock(&mutex);
       head = RemovePeer(head, m.addr, m.port);
       PrintList(head);
+      pthread_mutex_unlock(&mutex);
     }
   }
 }//End of peer communication
