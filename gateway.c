@@ -208,9 +208,13 @@ void *peer_com(){
 
     }
     if(m.message_type == -1){
-        RemovePeer(head, m.addr, m.port);
-        PrintList(head);
-      }
+      printf("Remove Peer:\n");
+      printf("%s \n", m.addr);
+      printf("%d \n\n", m.port);
+
+      head = RemovePeer(head, m.addr, m.port);
+      PrintList(head);
+    }
   }
 }//End of peer communication
 

@@ -106,47 +106,45 @@ int CountPeers(peerlist *head){
   return count;
 }
 
-void RemovePeer(peerlist *head, char r_ip[MESSAGE_LEN], int r_port){
+peerlist * RemovePeer(peerlist *head, char r_ip[MESSAGE_LEN], int r_port){
     peerlist *aux, *aux2;
     aux = head;
-    aux2=head->next;
+    aux2 = aux->next;
 
-    if(head->next==head){ //If head is the only server in te listen
-      printf("Only head in list\n");
-      free(head);
-      head=NULL;
-      return;
-    }else{
-      if(head->port == r_port && strcmp(head->ip,r_ip)==0){//Freeing the head peer
-          for(aux2=head->next; aux2->next!=head; aux2=aux2->next);
-          aux2->next = head;
-          head = head->next;
-          printf("Releasing head\n");
-          free(aux);
-          return;
-      }else{  //Freeing non-head peer
-        while( aux2 != head){
-          aux=aux2;
-          aux2=aux2->next;
+    if(aux == NULL){ //empty list
+      printf("List is empty! Trying to remove Peer from empty list.\n"); //debug
+      return head;
+    }
 
-          if((aux2->port==r_port && strcmp(aux2->ip, r_ip)==0)){
-            aux->next  = aux2->next;
-            free(aux2);
-            printf("Releasing non-head peer\n");
-            return;
-          }
-        }
+    if(aux == aux2){ //If head is the only server in the list
+      printf("Only head in list\n"); //debug
+      if(aux->port == r_port && strcmp(aux->ip,r_ip) == 0){
+        free(aux);
+        head=NULL;
+        return head;
+      }else{
+        printf("Peer you are trying to remove is not in list!\n");
+        return head;
       }
     }
-    printf("Peer not in list!\n");
-    return;
-}
-/*char *GiveIP(ListaNomes *NameList, char *clientip){
-	int n;
 
-	n= sizeof(NameList->name);
-	clientip = (char *) malloc(n+1);
-	strcpy(clientip, NameList->ip);
-	return clientip;
+    while(aux2 != head){ //if peer to remove is not head
+      if(aux2->port == r_port && strcmp(aux2->ip,r_ip)==0){
+        aux->next=aux2->next;
+        free(aux2);
+        return head;
+      }else{
+        aux=aux->next;
+        aux2=aux->next;
+      }
+    }
+    if(aux2->port == r_port && strcmp(aux2->ip,r_ip)==0){    //if peer to remove is head
+      aux->next=aux2->next;
+      free(aux2);
+      head=aux->next;
+      return head;
+    }else{
+      printf("Peer you are trying to remove is not in list !\n");
+    }
+    return head;
 }
-*/
