@@ -7,7 +7,7 @@ CFLAGS= -g -Wall
 
 OBJFILES1=gateway.o list.o
 OBJFILES2=server.o
-OBJFILES3=client.o
+OBJFILES3=client.o API.o
 
 THREAD=-lpthread
 
@@ -25,4 +25,4 @@ clean:
 	rm -f $(TARGET1) $(TARGET2) $(TARGET3) $(OBJFILES1) $(OBJFILES2) $(OBJFILES3)
 
 zip:
-	zip proj.zip gateway.c client.c server.c message.h list.c list.h Makefile
+	zip proj.zip gateway.c client.c server.c message.h list.c list.h API.C API.h Makefile
