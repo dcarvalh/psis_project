@@ -4,7 +4,6 @@
 #include "img_list.h"
 
 #include <inttypes.h>
-//#include <stdint.h>
 
 
 struct keyword{    //List that will store keyword information
