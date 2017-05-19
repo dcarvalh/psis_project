@@ -1,5 +1,4 @@
 #include "message.h"
-
 #include <ctype.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -11,6 +10,7 @@
 #include <signal.h>
 #include <string.h>
 #include <pthread.h>
+#include "img_list.h"
 
 #define MAX_WAIT_LIST 5
 
