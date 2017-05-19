@@ -19,7 +19,7 @@ int main (){
 
   peer_socket = gallery_connect(host, (in_port_t) htons(port));
 
-  if (peer_socket == 0){
+  if( (peer_socket == 0) || (peer_socket == -1) ){
     exit(0);
   }
 

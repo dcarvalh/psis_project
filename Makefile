@@ -25,4 +25,4 @@ clean:
 	rm -f $(TARGET1) $(TARGET2) $(TARGET3) $(OBJFILES1) $(OBJFILES2) $(OBJFILES3)
 
 zip:
-	zip proj.zip gateway.c client.c server.c message.h list.c list.h API.C API.h Makefile
+	zip proj.zip gateway.c client.c server.c message.h list.c list.h API.c API.h Makefile
