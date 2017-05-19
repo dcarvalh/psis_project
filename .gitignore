@@ -2,6 +2,8 @@
 #object files
 *.o
 #exe files
-*.exe
+gateway
+server
+client
 #zip
 proj.zip
