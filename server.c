@@ -130,17 +130,22 @@ int main (){
 
 void *cli_com(void *new_cli_sock){
 
+  pic_info pi;
   int fd = *(int*)new_cli_sock;
   char buffer[20];
   char aux[20];
-  while((strcmp("quit\n",aux) != 0)){
+
+    buff =  (char*)malloc(sizeof (pi));
     recv(fd, buffer, sizeof(buffer), 0);
-    strcpy(aux, buffer);
-    printf("%s\n", aux);
-    fgets(buffer, MESSAGE_LEN, stdin);
-    send(fd, buffer, sizeof(buffer), 0);
-  }
-  printf("Client Left\n");
+    memcpy(&pi, buff, sizeof(pi));
+
+    if(pi.message_type == 2){
+      printf("Picture Size: %d\n Picture Name: %s\n", pi.size, pi.pic_name );
+    }else{
+      printf("Message type unknown\n");
+    }
+
+  //printf("Client Left\n");
   client_count--;
   int retval = 1;
   pthread_exit ((void*) &retval);
@@ -160,5 +165,6 @@ static void handle(int sig, siginfo_t *siginfo,void *context){
   close(sock_TCP);
   close(sock_gateway_fd);
   free(buff);
+  free(handle);
   exit(0);
 }

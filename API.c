@@ -100,7 +100,7 @@ int gallery_connect(char * host, in_port_t port){
   	exit(-1);
   }
 
-  if( -1 == connect(sock_fd_server, (struct sockaddr *)&server_addr, sizeof(server_addr)) ){
+  if(connect(sock_fd_server, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1){
     printf("Error connecting\n");
     exit(-1);
   }
@@ -108,4 +108,66 @@ int gallery_connect(char * host, in_port_t port){
   printf("TCP socket created and sucsessefully connected\n");
 
   return sock_fd_server;
+}
+
+uint32_t  gallery_add_photo(int peer_socket, char *file_name){
+  char image_path[100];
+  uint32_t foto_id;
+  strcpy(image_path, file_name);
+
+  FILE *picture;
+  picture=fopen(image_path, "r");
+
+  int pic_size;
+
+  //Searching the beggining and end of the picture
+  fseek(picture, 0, SEEK_END);
+  pic_size = ftell(picture);
+  fseek(picture, 0, SEEK_SET);
+  //Sending Picture Size, and name to peer
+  pic_info p;
+  p.message_type = 2;
+  p.size = pic_size;
+  strcpy(p.pic_name, image_path);
+
+  //Copying picture info to memory and sending it to peer
+  char *buff =(char *) malloc(sizeof (p));
+  memcpy(buff, &p, sizeof(p));
+
+  int nbytes = send(peer_socket, buff, sizeof(p), 0);
+  if(nbytes == -1){
+    perror("Sending:");
+    exit(0);
+  }
+
+  printf("Picture Size sent\n");
+
+  //Sending Picture as byte array
+  char send_buffer[size];
+  bzero(send_buffer, sizeof(send_buffer));//Setting buffer to be
+  printf("Sending byte stream\n");
+  while(!feof(picture)){  //Reading file, while it is not the end of file
+    fread(send_buffer ,1, sizeof(send_buffer), picture);
+
+    nbytes = send(peer_socket, send_buffer, sizeof(send_buffer), 0);
+    if(nbytes == -1){
+      perror("Sending:");
+      exit(0);
+    }
+
+    bzero(send_buffer, sizeof(send_buffer));
+  }
+
+
+  //Reciving photo ID from
+  nbytes = recv(peer_socket, buff, sizeof(p), 0);
+  if(nbytes==-1){
+    perror("Reciving:");
+    exit(0);
+  }
+  memcpy(&foto_id, buff, sizeof(uint32_t));
+
+  printf("Photo ID: %d", foto_id)
+  return foto_id;
+
 }
