@@ -9,6 +9,7 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include <netinet/in.h>
+#include <sys/stat.h>
 #include <sys/time.h> //timeout
 #define TIMEOUT_INTERVAL 5
 
@@ -116,7 +117,7 @@ int gallery_connect(char * host, in_port_t port){
   	exit(-1);
   }
 
-  if( -1 == connect(sock_fd_server, (struct sockaddr *)&server_addr, sizeof(server_addr)) ){
+  if(connect(sock_fd_server, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1){
     printf("Error connecting\n");
     exit(-1);
   }
@@ -125,3 +126,81 @@ int gallery_connect(char * host, in_port_t port){
 
   return sock_fd_server;
 }
+
+uint32_t  gallery_add_photo(int peer_socket, char *file_name){
+
+  uint32_t foto_id;
+  //strcpy(image_path, "./");
+
+  strcpy(file_name, "space.jpg");
+
+  FILE *picture;
+  long pic_size;
+
+  //strcat(image_path, file_name);
+
+  printf("Image name %s\n", file_name);
+  picture=fopen(file_name, "rb");
+  if(picture==NULL){
+    perror("Filename:");
+    return 0;
+  }
+
+  //Searching the beggining and end of the picture
+  fseek(picture, 0, SEEK_END);
+  pic_size = ftell(picture);
+  rewind(picture);
+
+  //Sending Picture Size, and name to peer
+  pic_info p;
+  p.message_type = 2;
+  p.size = pic_size;
+  strcpy(p.pic_name, file_name);
+
+  printf("Image message type: %d\n",p.message_type);
+  printf("Image size %ld\n",pic_size);
+  printf("Image name %s\n",p.pic_name);
+  //Copying picture info to memory and sending it to peer
+  char *buff =(char *) malloc(sizeof (p));
+  memcpy(buff, &p, sizeof(p));
+
+  int nbytes = send(peer_socket, buff, sizeof(p), 0);
+  if(nbytes == -1){
+    perror("Sending:");
+    exit(0);
+  }
+
+  printf("Picture Size sent\n");
+
+  //Sending Picture as byte array
+  char send_buffer[p.size];
+  size_t fr;
+  printf("Sending byte stream\n");
+  int check=0;
+  while(!feof(picture)){  //Reading file, while it is not the end of file
+    printf("Check %d\n", check);
+    fr=fread(send_buffer ,sizeof(char), sizeof(send_buffer), picture);
+    if(fr>0){
+      nbytes = send(peer_socket, send_buffer, sizeof(send_buffer), 0);
+      printf("Sending!\n");
+      if(nbytes == -1){
+        perror("Sending:");
+        exit(0);
+      }
+    }
+    bzero(send_buffer, sizeof(send_buffer));
+    check++;
+  }
+
+  //Reciving photo ID from the Peer
+  nbytes = recv(peer_socket, buff, sizeof(p), 0);
+  if(nbytes==-1){
+    perror("Reciving:");
+    exit(0);
+  }
+  memcpy(&foto_id, buff, sizeof(uint32_t));
+
+  printf("Photo ID: %d", foto_id);
+  return foto_id;
+
+}//End of Add Photo

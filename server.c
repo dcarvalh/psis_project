@@ -24,6 +24,7 @@ int sock_gateway_fd;
 struct sockaddr_in gateway_addr;
 char *buff;
 message m;
+struct sockaddr_in client_addr;
 
 int client_count=0;
 void *cli_com(void  *new_cli_sock);
@@ -33,7 +34,6 @@ static void handle(int sig, siginfo_t *siginfo,void *context);
 int main (){
   //Structures that will save the information of the several
   struct sockaddr_in local_addr;
-	struct sockaddr_in client_addr;
   socklen_t addrlen;
   int nbytes;
   struct sigaction act;
@@ -95,9 +95,14 @@ int main (){
 
   sock_TCP = socket(AF_INET, SOCK_STREAM, 0);
   if (sock_TCP == -1){
-    perror("error creating socket \n ");
+    perror("Creating socket \n ");
     exit(-1);
   }
+  int yes=1;
+  if (setsockopt(sock_TCP, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
+		perror("Setsockopt error");
+		exit(-1);
+	}
 
   int err = bind(sock_TCP,(struct sockaddr *)&local_addr, sizeof(local_addr));
   if (err==-1){
@@ -130,17 +135,48 @@ int main (){
 
 void *cli_com(void *new_cli_sock){
 
+  pic_info pi;
   int fd = *(int*)new_cli_sock;
-  char buffer[20];
-  char aux[20];
-  while((strcmp("quit\n",aux) != 0)){
-    recv(fd, buffer, sizeof(buffer), 0);
-    strcpy(aux, buffer);
-    printf("%s\n", aux);
-    fgets(buffer, MESSAGE_LEN, stdin);
-    send(fd, buffer, sizeof(buffer), 0);
+  char *buff;
+  socklen_t  size_addr = sizeof(client_addr);
+
+
+  while(1){
+
+    //Reciving message from client
+    buff =  (char*)malloc(sizeof (pi));
+    int nbytes = recvfrom(fd, buff ,sizeof (pi), 0,
+                      (struct sockaddr *) &client_addr, &size_addr);
+    if(nbytes==0){
+      perror("Reciving:");
+    }
+    memcpy(&pi, buff, sizeof(pi));
+
+    if(pi.message_type == 0){
+      printf("Message Type: %d\n", pi.message_type);
+      sleep(5);
+    }
+
+    //If message is of type 2 it does the add picture protocol
+    if(pi.message_type == 2){
+      printf("Picture Size: %lld\n Picture Name: %s\n", pi.size, pi.pic_name );
+
+      //Recive byte image array
+      printf("Reading Picture Byte Array\n");
+      char p_array[pi.size];
+      read(fd, p_array, pi.size);
+
+      //Reconstruct byte array into picture
+      printf("Converting Byte Array to Picture\n");
+      FILE *image;
+      image = fopen( pi.pic_name, "w");
+      fwrite(p_array, 1, sizeof(p_array), image);
+      fclose(image);
+
+      printf("JobDone!\n");
+    }
   }
-  printf("Client Left\n");
+  //printf("Client Left\n");
   client_count--;
   int retval = 1;
   pthread_exit ((void*) &retval);
