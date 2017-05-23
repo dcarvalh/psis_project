@@ -15,6 +15,6 @@ typedef struct message{
 
 typedef struct picture_info{
   int message_type;
-  int size;
+  long long size;
   char pic_name[MESSAGE_LEN];
 }pic_info;

@@ -25,14 +25,17 @@ int main (){
 
   uint32_t photo_add;
   char image_name[MESSAGE_LEN];//Nome do ficheiro a enviar
-  char image_path[MESSAGE_LEN];
+  //char image_path[MESSAGE_LEN];
 
   while(1){
-    fgets(image_name, MESSAGE_LEN, stdin);
-    strcat(image_path,image_name);
+    if(fgets(image_name, MESSAGE_LEN, stdin)==NULL){
+      printf("No Inpt\n");
+    }else{
+      int i= sizeof(image_name);
+      printf("Sizeof name: %d\n", i);
 
-    photo_add = gallery_add_photo(peer_socket, (char *)image_name);
-
+      photo_add = gallery_add_photo(peer_socket, (char *)image_name);
+    }
     printf("%d\n",photo_add);
   }
   close(peer_socket);
