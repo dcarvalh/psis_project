@@ -10,6 +10,8 @@
 #include <string.h>
 #include <netinet/in.h>
 #include <sys/stat.h>
+#include <sys/time.h> //timeout
+#define TIMEOUT_INTERVAL 5
 
 int gallery_connect(char * host, in_port_t port){
 
@@ -63,29 +65,43 @@ int gallery_connect(char * host, in_port_t port){
     perror("Sending");
     exit(-1);
   }
+  ////////////////////TIMEOUT
 
-  nbytes = recv(sock_fd_gateway, buff ,sizeof(m), 0);
-  if(nbytes == -1){
-    perror("Reciving");
-    exit(-1);
-  }
+  fd_set          input_set;
+  struct timeval  timeout;
 
+  /* Empty the FD Set */
+  FD_ZERO(&input_set );
+  /* Listen to the input descriptor */
+  FD_SET(sock_fd_gateway, &input_set);
 
-  memcpy(&m, buff, sizeof(m));
-  free(buff);
+  /* Waiting for some seconds */
+  timeout.tv_sec = TIMEOUT_INTERVAL;    // WAIT seconds
+  timeout.tv_usec = 0;    // 0 milliseconds
 
-  if (m.message_type==0){
-    printf("Peer recived:\n");
-    printf("%s \n", m.addr);
-    printf("%d \n\n", m.port);
+  /* Listening for input stream for any activity */
+  if(select(sock_fd_gateway+1, &input_set, NULL, NULL, &timeout) > 0){
+    nbytes = recv(sock_fd_gateway, buff ,sizeof(m), 0);
+    if(nbytes == -1){
+      perror("Reciving");
+      exit(-1);
+    }
+    memcpy(&m, buff, sizeof(m));
+    free(buff);
+    if (m.message_type==0){
+      printf("Peer recived:\n");
+      printf("%s \n", m.addr);
+      printf("%d \n\n", m.port);
+    }else{
+      printf("No peers available :(\n");
+      return 0;
+    }
+    close(sock_fd_gateway);
   }else{
-    printf("No peers available :(\n");
-    return 0;
+    printf("Timeout has passed. Gateway is not reachable.\n");
+    close(sock_fd_gateway);
+    return -1;
   }
-
-  close(sock_fd_gateway);
-
-
   ///////////////////////////////////////////////////////////////////////////////
 
   /*TCP connection */
