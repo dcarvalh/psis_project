@@ -59,7 +59,7 @@ int main (){
 
   //Incialização da local address
   local_addr.sin_family = AF_INET;
-  local_addr.sin_port = htons(getpid());
+  local_addr.sin_port = htons(3000+getpid());
   local_addr.sin_addr.s_addr=INADDR_ANY;
 
   //Incialização da gatewa address
