@@ -15,7 +15,7 @@ int main (){
 
   int peer_socket;
   char * host = "127.0.0.1";
-  int port = 3001;
+  int port = 3002;
 
   peer_socket = gallery_connect(host, (in_port_t) htons(port));
 
@@ -30,7 +30,7 @@ int main (){
 
   while(1){
     if(fgets(image_name, MESSAGE_LEN, stdin)==NULL){
-      printf("No Inpt\n");
+      printf("No Input\n");
     }else{
       int i= sizeof(image_name);
       printf("Sizeof name: %d\n", i);
