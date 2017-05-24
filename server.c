@@ -1,4 +1,6 @@
 #include "message.h"
+#include "img_list.h"
+
 #include <ctype.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -10,7 +12,7 @@
 #include <signal.h>
 #include <string.h>
 #include <pthread.h>
-#include "img_list.h"
+
 
 #define MAX_WAIT_LIST 5
 
@@ -27,6 +29,10 @@ message m;
 struct sockaddr_in client_addr;
 
 int client_count=0;
+
+//Picture list variables
+photolist *head;
+
 void *cli_com(void  *new_cli_sock);
 static void handle(int sig, siginfo_t *siginfo,void *context);
 
@@ -41,6 +47,11 @@ int main (){
   pthread_t thread_c; //Threads that will comunicate with the client
   int iret_c;
   int *t_args;
+
+
+  //Initialization of the photo listen
+  
+
 ////Sigaction Initialization
   memset (&act, '\0', sizeof(act));
   act.sa_sigaction = & handle;
@@ -135,11 +146,13 @@ int main (){
 
 void *cli_com(void *new_cli_sock){
 
-  pic_info pi;
+  //Socket communication variables
   int fd = *(int*)new_cli_sock;
   char *buff;
   socklen_t  size_addr = sizeof(client_addr);
-
+  //Picture variables
+  pic_info pi;
+  uint32_t pic_id;
 
   while(1){
 
@@ -152,14 +165,22 @@ void *cli_com(void *new_cli_sock){
     }
     memcpy(&pi, buff, sizeof(pi));
 
+
+    //Verifying message type
     if(pi.message_type == 0){
       printf("Message Type: %d\n", pi.message_type);
       sleep(5);
     }
 
+
+
     //If message is of type 2 it does the add picture protocol
     if(pi.message_type == 2){
       printf("Picture Size: %lld\n Picture Name: %s\n", pi.size, pi.pic_name );
+
+      pic_id = sizeof(pi.pic_name)*pi.size;
+      char server_img[1000];
+      sprintf(server_img, "%d", pic_id);
 
       //Recive byte image array
       printf("Reading Picture Byte Array\n");
@@ -168,15 +189,22 @@ void *cli_com(void *new_cli_sock){
 
       //Reconstruct byte array into picture
       printf("Converting Byte Array to Picture\n");
+
       FILE *image;
-      image = fopen( pi.pic_name, "w");
+      image = fopen( server_img, "w");
       fwrite(p_array, 1, sizeof(p_array), image);
       fclose(image);
+
+      nbytes = sendto(fd, &pic_id, sizeof(pic_id), 0,
+                      (struct sockaddr *) &client_addr, size_addr);
+      if(nbytes == -1){
+        perror("Sending");
+        exit(-1);
+      }
 
       printf("JobDone!\n");
     }
   }
-  //printf("Client Left\n");
   client_count--;
   int retval = 1;
   pthread_exit ((void*) &retval);

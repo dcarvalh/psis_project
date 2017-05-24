@@ -26,18 +26,27 @@ int main (){
 
   uint32_t photo_add;
   char image_name[MESSAGE_LEN];//Nome do ficheiro a enviar
-  //char image_path[MESSAGE_LEN];
+  char input [MESSAGE_LEN];
+  char command;
+
+  printf("Choose one of the following commands\nAdd photo - a\nCommand: ");
 
   while(1){
-    if(fgets(image_name, MESSAGE_LEN, stdin)==NULL){
-      printf("No Inpt\n");
-    }else{
-      int i= sizeof(image_name);
-      printf("Sizeof name: %d\n", i);
+    //Getting input command
+    fgets(input, MESSAGE_LEN, stdin);
+    sscanf(input,"%c",&command);
 
-      photo_add = gallery_add_photo(peer_socket, (char *)image_name);
+    //Add-Photo
+    if(command=='a'){
+      printf("Input the name of the image you want to send\nImage name: ");
+      fgets(input, MESSAGE_LEN, stdin);
+      sscanf(input,"%s",image_name);
+      photo_add = gallery_add_photo(peer_socket, image_name);
+      printf("Your photo ID is: %d\n\n",photo_add);
+      printf("Choose one of the following commands\nAdd photo - a\nCommand: ");
     }
-    printf("%d\n",photo_add);
+
+
   }
   close(peer_socket);
   exit(0);
