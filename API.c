@@ -86,6 +86,7 @@ int gallery_connect(char * host, in_port_t port){
       perror("Reciving");
       exit(-1);
     }
+
     memcpy(&m, buff, sizeof(m));
     free(buff);
     if (m.message_type==0){
@@ -130,9 +131,8 @@ int gallery_connect(char * host, in_port_t port){
 uint32_t  gallery_add_photo(int peer_socket, char *file_name){
 
   uint32_t foto_id;
-  //strcpy(image_path, "./");
 
-  strcpy(file_name, "space.jpg");
+  //strcpy(file_name, file_name);
 
   FILE *picture;
   long pic_size;
@@ -200,7 +200,6 @@ uint32_t  gallery_add_photo(int peer_socket, char *file_name){
   }
   memcpy(&foto_id, buff, sizeof(uint32_t));
 
-  printf("Photo ID: %d", foto_id);
   return foto_id;
 
 }//End of Add Photo
