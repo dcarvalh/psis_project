@@ -19,7 +19,7 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 peerlist * head;    //Head pointer to list
 int sock_fd_peer;   //Peer communication socket
 int sock_fd_client; //Client communication socket
-int end = 1;        //Variable that decides the end of the program
+int end;        //Variable that decides the end of the program
 void *cli_com();    //Code that the thread that comunicates with the client will run
 void *peer_com();   //Code that the thread that comunicates with the peers will run
 
@@ -28,20 +28,20 @@ static void handle(int sig, siginfo_t *siginfo,void *context);
 
 
 int main(){
-  struct  sigaction act;
+
+  end=1;
+  struct  sigaction *act;
   pthread_t thread_c, thread_p;
   int iret_c, iret_p;
 
   //Sigaction Initialization
-  memset (&act, '\0', sizeof(act));
-  act.sa_sigaction = & handle;
-  act.sa_flags = SA_SIGINFO;
-
-  //Defining Ctrl+C as a save closing method
-  if(sigaction(SIGINT, &act, NULL) <0){
+  act = malloc(sizeof(act));
+  printf("ok\n");
+  act->sa_sigaction = &handle;
+  act->sa_flags = SA_SIGINFO;
+  if(sigaction(SIGINT, act, NULL) <0){
     perror("Sigaction:");
   }
-
   //Peer List Initialization
   head=InitList();
 
@@ -61,7 +61,8 @@ int main(){
     exit(-1);
   }
 
-  while(end);//Cicle so the main doesn't end and the threads keep running
+
+  while(end == 1);
 
   PrintList(head);
   FreeList(head);
@@ -70,6 +71,7 @@ int main(){
   close(sock_fd_peer);
   printf("\nClosing Gateway\n");
   printf("Thank you for your visit.\n");
+  free(act);
   exit (0);
 }//end of main!
 
@@ -146,13 +148,11 @@ void *cli_com(){
           exit(-1);
         }
       }else{
-        m.message_type = 1;
-
+        m.message_type = -1;
         memcpy(buff, &m, sizeof(m));
-
-        //Sending message to gateway
         nbytes = sendto(sock_fd_client, buff, sizeof(m), 0,
                     	  (struct sockaddr *) &client_addr, size_addr);
+        printf("Welcome summoner\n");
         if(nbytes == -1){
           perror("Sending");
           exit(-1);
@@ -230,5 +230,5 @@ void *peer_com(){
 
 //Sigaction handler, aka, interruption that will kill the program safelly by pressing Ctrl+C
 static void handle(int sig, siginfo_t *siginfo,void *context){
-  end = 0;
+  end=0;
 }
