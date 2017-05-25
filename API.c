@@ -34,7 +34,7 @@ int gallery_connect(char * host, in_port_t port){
 
   //Locla address initialization
   local_addr.sin_family = AF_INET;
-  local_addr.sin_port = htons(3009);
+  local_addr.sin_port = htons(3009+getpid());
   local_addr.sin_addr.s_addr=INADDR_ANY;
 
   //Incialização da local address
