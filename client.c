@@ -9,18 +9,35 @@
 #include <arpa/inet.h>
 #include <string.h>
 #include "API.h"
+#include <signal.h>
 
+//Variables that are used in the signal handlelign function
+int end =1;
+//Signal handlelling function
+static void handle(int sig, siginfo_t *siginfo,void *context);
 
 int main (){
 
-  int peer_socket;
   char * host = "127.0.0.1";
   int port = 3001;
+  pic_info p;
+  int peer_socket;
+  struct sigaction *act;
 
+////Sigaction Initialization
+  act  = malloc(sizeof(act));
+  act->sa_sigaction = &handle;
+  act->sa_flags = SA_SIGINFO;
+//Defining Ctrl+C as a save closing method
+  if(sigaction(SIGINT, act, NULL) <0){
+    perror("Sigaction:");
+  }
+
+  //Connecting client to a peer through the gateway
   peer_socket = gallery_connect(host, (in_port_t) htons(port));
 
   if( (peer_socket == 0) || (peer_socket == -1) ){
-        perror("Peer Connection failled");
+    perror("Peer Connection failled");
     exit(0);
   }
 
@@ -29,25 +46,56 @@ int main (){
   char input [MESSAGE_LEN];
   char command;
 
-  printf("Choose one of the following commands\nAdd photo - a\nCommand: ");
+  printf("Choose one of the following commands\nAdd photo - a\n");
+  printf("Exit program - q\n");
+  printf("Command:");
 
-  while(1){
+  while(end==1){
     //Getting input command
     fgets(input, MESSAGE_LEN, stdin);
     sscanf(input,"%c",&command);
 
+    switch(command){
     //Add-Photo
-    if(command=='a'){
+    case 'a' :
       printf("Input the name of the image you want to send\nImage name: ");
       fgets(input, MESSAGE_LEN, stdin);
       sscanf(input,"%s",image_name);
       photo_add = gallery_add_photo(peer_socket, image_name);
-      printf("Your photo ID is: %d\n\n",photo_add);
+      printf("Picture ID: %d\n\n",photo_add);
       printf("Choose one of the following commands\nAdd photo - a\nCommand: ");
+      break;
+    //Quit Program
+    case 'q':
+      printf("Exiting the program\n");
+      p.message_type = -99;
+      printf("Message Type: %d\n",p.message_type);
+      char *buff =(char *) malloc(sizeof (p));
+      memcpy(buff, &p, sizeof(p));
+      send(peer_socket, buff, sizeof(p),0);
+      close(peer_socket);
+      free(buff);
+      exit(0);
+      break;
     }
+  }
 
-
+  printf("END : %d\n", end);
+  //Sending message to peer telling the client is disconnecting
+  p.message_type = -99;
+  printf("Message Type: %d\n",p.message_type);
+  char *buff =(char *) malloc(sizeof (p));
+  memcpy(buff, &p, sizeof(p));
+  int nbytes = send(peer_socket, buff, sizeof(p),0);
+  if(nbytes == -1){
+    perror("Sending");
   }
   close(peer_socket);
+  free(buff);
+  free(act);
   exit(0);
+
+}//end of main
+static void handle(int sig, siginfo_t *siginfo,void *context){
+  end=0;
 }

@@ -22,7 +22,7 @@ int gallery_connect(char * host, in_port_t port){
   char *buff;
   int nbytes;
   message m;
-  int sock_fd_gateway;                      //UDP Socket that will comunicate with the gateway
+  int sock_fd_gateway;       //UDP Socket that will comunicate with the gateway
 
 
   //Socket that comunicates with Gateway
@@ -32,7 +32,7 @@ int gallery_connect(char * host, in_port_t port){
     exit(-1);
   }
 
-  //Incialização da local address
+  //Locla address initialization
   local_addr.sin_family = AF_INET;
   local_addr.sin_port = htons(3009);
   local_addr.sin_addr.s_addr=INADDR_ANY;
@@ -93,11 +93,12 @@ int gallery_connect(char * host, in_port_t port){
       printf("Peer recived:\n");
       printf("%s \n", m.addr);
       printf("%d \n\n", m.port);
-    }else{
+    }if(m.message_type==-1){
       printf("No peers available :(\n");
+      close(sock_fd_gateway);
       return 0;
     }
-    close(sock_fd_gateway);
+
   }else{
     printf("Timeout has passed. Gateway is not reachable.\n");
     close(sock_fd_gateway);
@@ -157,9 +158,6 @@ uint32_t  gallery_add_photo(int peer_socket, char *file_name){
   p.size = pic_size;
   strcpy(p.pic_name, file_name);
 
-  printf("Image message type: %d\n",p.message_type);
-  printf("Image size %ld\n",pic_size);
-  printf("Image name %s\n",p.pic_name);
   //Copying picture info to memory and sending it to peer
   char *buff =(char *) malloc(sizeof (p));
   memcpy(buff, &p, sizeof(p));
@@ -170,28 +168,21 @@ uint32_t  gallery_add_photo(int peer_socket, char *file_name){
     exit(0);
   }
 
-  printf("Picture Size sent\n");
 
   //Sending Picture as byte array
   char send_buffer[p.size];
   size_t fr;
-  printf("Sending byte stream\n");
-  int check=0;
   while(!feof(picture)){  //Reading file, while it is not the end of file
-    printf("Check %d\n", check);
     fr=fread(send_buffer ,sizeof(char), sizeof(send_buffer), picture);
     if(fr>0){
       nbytes = send(peer_socket, send_buffer, sizeof(send_buffer), 0);
-      printf("Sending!\n");
       if(nbytes == -1){
         perror("Sending:");
         exit(0);
       }
     }
     bzero(send_buffer, sizeof(send_buffer));
-    check++;
   }
-
   //Reciving photo ID from the Peer
   nbytes = recv(peer_socket, buff, sizeof(p), 0);
   if(nbytes==-1){
@@ -199,7 +190,35 @@ uint32_t  gallery_add_photo(int peer_socket, char *file_name){
     exit(0);
   }
   memcpy(&foto_id, buff, sizeof(uint32_t));
-
+  printf("Picture: %s", p.pic_name);
   return foto_id;
 
 }//End of Add Photo
+
+/*int gallery_add_keyword (int peer_socket, uint32_t id_photo, char *keyword){
+  pic_info k_word;
+  char *buff;
+
+  k_word.message_type = 3;
+  k_word. pic_id = id_photo;
+  strcpy(k_word.pic_name, keyword);
+
+  //Sending keyword
+  buff =(char *) malloc(sizeof (k_word));
+  memcpy(buff, &k_word, sizeof(k_word));
+  int nbytes = send(peer_socket, buff, sizeof(p), 0);
+  if(nbytes == -1){
+    perror("Sending:");
+    exit(0);
+  }
+
+  int re;
+  //Reciving Server response
+  nbytes = recv(peer_socket, re, sizeof(re), 0);
+  if(nbytes==-1){
+    perror("Reciving:");
+    exit(0);
+  }
+
+  return re;
+}//Assuming it returns 1 on success*/
