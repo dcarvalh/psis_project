@@ -210,14 +210,15 @@ void *cli_com(void *new_cli_sock){
         perror("Sending");
         exit(-1);
       }
+
+      printf("Picture Added!\n\n");
       PrintPhotoList(head);
-      printf("Picture Added!\n");
     }
     ////////////////End ADD PICTURE!
 
     ///Add Keyword protocol//////////////////
     if(pi.message_type ==  3){
-      
+
       printf("Keyword added");
     }
     ////////////////////END ADD KEYWORD
@@ -227,6 +228,8 @@ void *cli_com(void *new_cli_sock){
 static void handle(int sig, siginfo_t *siginfo,void *context){
 
   m.message_type = -1;//message of the type -1 tells the gateway the server is disconnecting
+
+  PrintPhotoList(head);
 
   buff =(char *) malloc(sizeof (m));
   memcpy(buff, &m, sizeof(m));

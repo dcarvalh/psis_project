@@ -36,7 +36,6 @@ int main(){
 
   //Sigaction Initialization
   act = malloc(sizeof(act));
-  printf("ok\n");
   act->sa_sigaction = &handle;
   act->sa_flags = SA_SIGINFO;
   if(sigaction(SIGINT, act, NULL) <0){
@@ -123,7 +122,7 @@ void *cli_com(){
 
     //If the client wants to know the data of a peer to connect, message_type = 0
     if(m.message_type == 0){
-      
+
       //Locking thread accessibility to the list
       pthread_mutex_lock(&mutex);
       if(CountPeers(head)>0){

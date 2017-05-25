@@ -39,7 +39,7 @@ photolist * NewPhoto(photolist * head, uint32_t new_id_photo, char * new_file_na
 
 	if(head == NULL){
     new->next = NULL;
-  
+
   }else{
     new->next = head; // insere no inicio da lista
 
@@ -69,6 +69,7 @@ void PrintPhotoList(photolist * head)
     printf("%s\n", head->file_name);
     printf("%" PRIu32 "\n", head->id_photo);
     head=aux;
+    i++;
   }
 	return;
 }
