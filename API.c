@@ -124,7 +124,7 @@ int gallery_connect(char * host, in_port_t port){
     exit(-1);
   }
 
-  printf("TCP socket created and sucsessefully connected\n");
+  printf("TCP socket created and successfully connected\n");
 
   return sock_fd_server;
 }

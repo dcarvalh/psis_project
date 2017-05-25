@@ -123,43 +123,34 @@ void *cli_com(){
 
     //If the client wants to know the data of a peer to connect, message_type = 0
     if(m.message_type == 0){
-      //Locking thread acessebility to the list
+      
+      //Locking thread accessibility to the list
       pthread_mutex_lock(&mutex);
       if(CountPeers(head)>0){
-
         //Passing the server data stored in the list to a structure of type message
         strcpy(m.addr, GiveIP(head));
         m.port = GivePort(head);
         head = NextPeer(head);
-        //Unlocking thread acessebility to the list
-        pthread_mutex_unlock(&mutex);
 
         printf("Sent to client:\n");
         printf("%s \n", m.addr);
         printf("%d \n\n", m.port);
-
-        memcpy(buff, &m, sizeof(m));
-
-        //Sending message to gateway
-        nbytes = sendto(sock_fd_client, buff, sizeof(m), 0,
-                    	  (struct sockaddr *) &client_addr, size_addr);
-        if(nbytes == -1){
-          perror("Sending");
-          exit(-1);
-        }
       }else{
         m.message_type = -1;
-        memcpy(buff, &m, sizeof(m));
-        nbytes = sendto(sock_fd_client, buff, sizeof(m), 0,
-                    	  (struct sockaddr *) &client_addr, size_addr);
-        printf("Welcome summoner\n");
-        if(nbytes == -1){
-          perror("Sending");
-          exit(-1);
-        }
       }
-    }
 
+      memcpy(buff, &m, sizeof(m));
+      nbytes = sendto(sock_fd_client, buff, sizeof(m), 0,
+                      (struct sockaddr *) &client_addr, size_addr);
+
+      if(nbytes == -1){
+        perror("Sending");
+        exit(-1);
+      }
+
+      //Unlocking thread accessibility to the list
+      pthread_mutex_unlock(&mutex);
+    }
     free(buff);
   }
 }//End of Client Communication thread

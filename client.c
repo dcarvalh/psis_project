@@ -37,7 +37,7 @@ int main (){
   peer_socket = gallery_connect(host, (in_port_t) htons(port));
 
   if( (peer_socket == 0) || (peer_socket == -1) ){
-    perror("Peer Connection failled");
+    printf("Peer Connection failed\n");
     exit(0);
   }
 
