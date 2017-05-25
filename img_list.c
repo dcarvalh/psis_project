@@ -3,6 +3,7 @@
 #include <string.h>
 #include "img_list.h"
 
+
 #include <inttypes.h>
 
 
@@ -13,7 +14,7 @@ struct keyword{    //List that will store keyword information
 
 struct photo{    //List that will store photo information
   uint32_t id_photo;
-  char * file_name;
+  char *file_name;
   struct keyword * key_head;
   struct photo * next;
 };
@@ -27,18 +28,23 @@ photolist * InitPhotoList(void)
 
 photolist * NewPhoto(photolist * head, uint32_t new_id_photo, char * new_file_name)
 {
+
 	photolist * new;
   new = (photolist *) malloc(sizeof(photolist));
 
-  strcpy(new->file_name,new_file_name);
+  new->file_name = malloc(strlen(new_file_name) * sizeof(char));
+  strcpy(new->file_name, new_file_name);
   new->id_photo = new_id_photo;
   new->key_head = NULL;
 
 	if(head == NULL){
     new->next = NULL;
+  
   }else{
     new->next = head; // insere no inicio da lista
+
   }
+
   head=new;
 
   return head;

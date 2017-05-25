@@ -29,6 +29,7 @@ message m;
 struct sockaddr_in client_addr;
 
 int client_count=0;
+struct sigaction *act;
 
 //Picture list variables
 photolist *head;
@@ -42,22 +43,21 @@ int main (){
   struct sockaddr_in local_addr;
   socklen_t addrlen;
   int nbytes;
-  struct sigaction act;
 
-  pthread_t thread_c; //Threads that will comunicate with the client
+
+  //Threads that will comunicate with the client
+  pthread_t thread_c;
   int iret_c;
   int *t_args;
 
 
-  //Initialization of the photo listen
-  
 
 ////Sigaction Initialization
-  memset (&act, '\0', sizeof(act));
-  act.sa_sigaction = & handle;
-  act.sa_flags = SA_SIGINFO;
+  act = malloc(sizeof(act));
+  act->sa_sigaction = & handle;
+  act->sa_flags = SA_SIGINFO;
 //Defining Ctrl+C as a save closing method
-  if(sigaction(SIGINT, &act, NULL) <0){
+  if(sigaction(SIGINT, act, NULL) <0){
     perror("Sigaction:");
   }
 
@@ -102,7 +102,7 @@ int main (){
 
   /////////////////Client handeling portion//////////////////////
 
-  //Binding and creating
+  //Binding and creating TCP socket
 
   sock_TCP = socket(AF_INET, SOCK_STREAM, 0);
   if (sock_TCP == -1){
@@ -114,7 +114,6 @@ int main (){
 		perror("Setsockopt error");
 		exit(-1);
 	}
-
   int err = bind(sock_TCP,(struct sockaddr *)&local_addr, sizeof(local_addr));
   if (err==-1){
     perror("Binding:");
@@ -122,6 +121,9 @@ int main (){
   }
 
   t_args = malloc(sizeof(new_cli_sock));
+
+  //Initializing Photo list
+  head = InitPhotoList();
 
   while(1){
     /*Listening for new clients connecting(in case more than one connects at the
@@ -131,7 +133,7 @@ int main (){
     //Accepting and creating new socket for the client
     new_cli_sock= accept(sock_TCP, (struct sockaddr *) & client_addr, &addrlen);
     client_count++;
-    printf("Client Acepted!\nClient Count:%d\n", client_count);
+    printf("Client Acepted!\nClient Count:%d\n\n", client_count);
 
     t_args= &new_cli_sock;
     //Creation of the thread that will comunicate with the client
@@ -154,29 +156,35 @@ void *cli_com(void *new_cli_sock){
   pic_info pi;
   uint32_t pic_id;
 
+
+
   while(1){
 
     //Reciving message from client
     buff =  (char*)malloc(sizeof (pi));
-    int nbytes = recvfrom(fd, buff ,sizeof (pi), 0,
-                      (struct sockaddr *) &client_addr, &size_addr);
+    int nbytes = recv(fd, buff ,sizeof (pi), 0);
+                    //  (struct sockaddr *) &client_addr, &size_addr);
     if(nbytes==0){
-      perror("Reciving:");
-    }
-    memcpy(&pi, buff, sizeof(pi));
-
-
-    //Verifying message type
-    if(pi.message_type == 0){
-      printf("Message Type: %d\n", pi.message_type);
+      perror("Reciving");
       sleep(5);
     }
+    memcpy(&pi, buff, sizeof(pi));
+    free(buff);
 
 
+    //Exiting protocol
+    if(pi.message_type == -99){
+      client_count--;
+      printf("A client has left.\nClient Count: %d\n\n", client_count);
+      int retval = 1;
+      pthread_exit ((void*) &retval);
+    }
+    ///////////////////
 
-    //If message is of type 2 it does the add picture protocol
+    //Add_picture protocol
     if(pi.message_type == 2){
-      printf("Picture Size: %lld\n Picture Name: %s\n", pi.size, pi.pic_name );
+
+      printf("Picture Size: %lld\nPicture Name: %s\n", pi.size, pi.pic_name );
 
       pic_id = sizeof(pi.pic_name)*pi.size;
       char server_img[1000];
@@ -187,6 +195,8 @@ void *cli_com(void *new_cli_sock){
       char p_array[pi.size];
       read(fd, p_array, pi.size);
 
+      //Adding photo to the photo lista
+      head = NewPhoto(head, pic_id, pi.pic_name);
       //Reconstruct byte array into picture
       printf("Converting Byte Array to Picture\n");
 
@@ -194,20 +204,24 @@ void *cli_com(void *new_cli_sock){
       image = fopen( server_img, "w");
       fwrite(p_array, 1, sizeof(p_array), image);
       fclose(image);
-
       nbytes = sendto(fd, &pic_id, sizeof(pic_id), 0,
                       (struct sockaddr *) &client_addr, size_addr);
       if(nbytes == -1){
         perror("Sending");
         exit(-1);
       }
-
-      printf("JobDone!\n");
+      PrintPhotoList(head);
+      printf("Picture Added!\n");
     }
+    ////////////////End ADD PICTURE!
+
+    ///Add Keyword protocol//////////////////
+    if(pi.message_type ==  3){
+      
+      printf("Keyword added");
+    }
+    ////////////////////END ADD KEYWORD
   }
-  client_count--;
-  int retval = 1;
-  pthread_exit ((void*) &retval);
 }//END OF CLIENT THREAD
 
 static void handle(int sig, siginfo_t *siginfo,void *context){
@@ -224,5 +238,6 @@ static void handle(int sig, siginfo_t *siginfo,void *context){
   close(sock_TCP);
   close(sock_gateway_fd);
   free(buff);
+  free(act);
   exit(0);
 }

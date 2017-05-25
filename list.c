@@ -9,7 +9,7 @@ struct list{    //List that will store server information
   struct list *next;
 };
 
-peerlist * InitList(void)
+peerlist * InitList()
 {
   peerlist * new;
   new = NULL;
