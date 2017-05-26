@@ -21,3 +21,5 @@ void PrintKeyWords(photolist *k_head);
 keyword *GetKeyHead(photolist *head);
 
 void Adding(photolist *aux, keyword *k_head);
+
+void FreeKeywords(keyword * head);
