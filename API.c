@@ -34,7 +34,7 @@ int gallery_connect(char * host, in_port_t port){
 
   //Locla address initialization
   local_addr.sin_family = AF_INET;
-  local_addr.sin_port = htons(3009);
+  local_addr.sin_port = htons(3009+getpid());
   local_addr.sin_addr.s_addr=INADDR_ANY;
 
   //Incialização da local address
@@ -124,7 +124,7 @@ int gallery_connect(char * host, in_port_t port){
     exit(-1);
   }
 
-  printf("TCP socket created and sucsessefully connected\n");
+  printf("TCP socket created and successfully connected\n");
 
   return sock_fd_server;
 }
@@ -190,7 +190,7 @@ uint32_t  gallery_add_photo(int peer_socket, char *file_name){
     exit(0);
   }
   memcpy(&foto_id, buff, sizeof(uint32_t));
-  printf("Picture: %s", p.pic_name);
+  printf("Picture: %s\n", p.pic_name);
   return foto_id;
 
 }//End of Add Photo

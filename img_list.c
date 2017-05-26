@@ -69,6 +69,7 @@ void PrintPhotoList(photolist * head)
     printf("%s\n", head->file_name);
     printf("%" PRIu32 "\n", head->id_photo);
     head=aux;
+    i++;
   }
 	return;
 }
