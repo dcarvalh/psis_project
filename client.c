@@ -47,10 +47,11 @@ int main (){
   char command;
 
 
-  printf("Choose one of the following commands\nAdd photo - a\n");
-  printf("Add a keyword to the picture - k\n");
-  printf("Exit program - q\n");
-  printf("Command:");
+  printf("\nChoose one of the following commands\n");
+  printf("\ta - Add photo\n");
+  printf("\tk - Add a keyword to the picture \n");
+  printf("\tq - Exit program \n");
+  printf("Command: ");
 
 
   int k;
@@ -69,7 +70,7 @@ int main (){
       fgets(input, MESSAGE_LEN, stdin);
       sscanf(input,"%s",image_name);
       photo_add = gallery_add_photo(peer_socket, image_name);
-      printf("Picture ID: %d\n\n",photo_add);
+      printf("Picture ID: %d\n",photo_add);
 
       break;
     //Quit Program
@@ -97,17 +98,18 @@ int main (){
       if(k == 1)
         printf("Keyword Sucessefully Added!\n");
       else
-        printf("Could not add photo\nUnlucky\n");
+        printf("Could not add keyword\nUnlucky\n");
       printf("\n");
       break;
     //Default input hadeling
     default:
       printf("The command you input is not valid\nTry again faggot\n");
     }
-    printf("Choose one of the following commands\nAdd photo - a\n");
-    printf("Add a keyword to the picture - k\n");
-    printf("Exit program - q\n");
-    printf("Command:");
+    printf("\nChoose one of the following commands\n");
+    printf("\ta - Add photo\n");
+    printf("\tk - Add a keyword to the picture \n");
+    printf("\tq - Exit program \n");
+    printf("Command: ");
   }
 
   printf("END : %d\n", end);

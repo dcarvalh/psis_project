@@ -68,9 +68,11 @@ void PrintPhotoList(photolist * head)
     printf("--- photo %d ---\n", i);
     printf("%s\n", head->file_name);
     printf("%" PRIu32 "\n", head->id_photo);
+    PrintKeyWords(head);
     head=aux;
     i++;
   }
+  printf("----------------\n\n");
 	return;
 }
 
@@ -90,10 +92,8 @@ void FreePhotoList(photolist * head){
     aux=head->next;
     free(head->file_name);
     sprintf(str, "%d", head->id_photo);
-    printf("here!!!\n");
-    printf("%s\n", str);
     unlink(str);
-    //FreeKeywords(head->key_head);
+    FreeKeywords(head->key_head);
     free(head);
     head=aux;
   }
@@ -133,9 +133,8 @@ keyword *GetKeyHead(photolist *head){
 
 void PrintKeyWords(photolist *k_head){
   keyword *head;
-  printf("Keywords:\n");
   for(head = k_head->key_head; head != NULL; head = head->next_key)
-    printf(" \t %s\n", head->keyword_name);
+    printf("\t%s\n", head->keyword_name);
 
 }
 

@@ -226,7 +226,7 @@ void *cli_com(void *new_cli_sock){
         Adding(aux, k_head);
         PrintKeyWords(aux);
         pi.message_type = 1;
-        printf("Keyword added!\n");
+        printf("Keyword added!\n\n");
       }else{
         pi.message_type = -1;
       }
