@@ -12,7 +12,7 @@
 #include <signal.h>
 #include <string.h>
 #include <pthread.h>
-
+#include <time.h>
 
 #define MAX_WAIT_LIST 5
 
@@ -182,9 +182,11 @@ void *cli_com(void *new_cli_sock){
     //Add_picture protocol
     if(pi.message_type == 2){
 
-      printf("Picture Size: %lld\nPicture Name: %s\n", pi.size, pi.pic_name );
+      printf("Picture Size: %d\nPicture Name: %s\n", pi.size, pi.pic_name );
 
-      pic_id = strlen(pi.pic_name)*pi.size;
+      clock_t current = clock();
+
+      pic_id = getpid() + (current*10000);
       char server_img[1000];
       sprintf(server_img, "%d", pic_id);
 
@@ -216,7 +218,7 @@ void *cli_com(void *new_cli_sock){
 
     /////////////Add Keyword protocol//////////////////
     if(pi.message_type ==  3){
-
+      /*
       photolist *aux = head;
       keyword *k_word, *k_head;
       if((aux = GetPhoto(head, pi.size))!=NULL){
@@ -238,7 +240,7 @@ void *cli_com(void *new_cli_sock){
       free(buff);
 
       printf("Keyword added");
-
+      */
     }
     ////////////////////END ADD KEYWORD
   }

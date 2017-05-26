@@ -19,7 +19,7 @@ static void handle(int sig, siginfo_t *siginfo,void *context);
 int main (){
 
   char * host = "127.0.0.1";
-  int port = 3000+getpid();
+  int port = 3001;
   pic_info p;
   int peer_socket;
   struct sigaction *act;
