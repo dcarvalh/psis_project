@@ -8,7 +8,7 @@
 
 
 struct keyword{    //List that will store keyword information
-  char * keyword_name;
+  char *keyword_name;
   struct keyword * next_key;
 };
 
@@ -32,14 +32,14 @@ photolist * NewPhoto(photolist * head, uint32_t new_id_photo, char * new_file_na
 	photolist * new;
   new = (photolist *) malloc(sizeof(photolist));
 
-  new->file_name = malloc(strlen(new_file_name) * sizeof(char));
+  new->file_name = malloc(strlen(new_file_name)*sizeof(char));
   strcpy(new->file_name, new_file_name);
   new->id_photo = new_id_photo;
   new->key_head = NULL;
 
 	if(head == NULL){
     new->next = NULL;
-  
+
   }else{
     new->next = head; // insere no inicio da lista
 
@@ -92,6 +92,39 @@ void FreePhotoList(photolist * head){
 	return;
 }
 
+photolist *GetPhoto(photolist *head, uint32_t id){
+  photolist *aux;
+  for(aux = head; aux!=NULL; aux= aux->next){
+    if(aux->id_photo == id){
+      return aux;
+    }
+  }
+  return NULL;
+}
+
+keyword *NewKeyWord(keyword *key_head, char *new_key_name){
+  keyword *new;
+  new = (keyword *) malloc (sizeof(keyword));
+
+  new->keyword_name = malloc(strlen(new_key_name)*sizeof(char));
+  strcpy(new->keyword_name, new_key_name);
+
+  if(key_head == NULL){
+    new->next_key = NULL;
+  }else{
+    new->next_key =key_head;
+  }
+
+  key_head = new;
+  return key_head;
+}
+
+keyword *GetHead(photolist *head){
+    keyword *keyhead;
+    keyhead = head->key_head;
+
+    return keyhead;
+}
 /*
 char *GiveIP(peerlist * head){
 	return head->ip;

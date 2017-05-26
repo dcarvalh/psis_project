@@ -1,6 +1,6 @@
 #define MESSAGE_LEN 20
 #define BICHO   printf("KAKAKAKAKAKAKAKAKAK4AKAKAKAKAKAKA!");
-
+#include <stdint.h>
 typedef struct message{
   char addr[MESSAGE_LEN];
   int message_type;
@@ -17,6 +17,6 @@ typedef struct message{
 
 typedef struct picture_info{
   int message_type;
-  long long size;
+  uint32_t size;
   char pic_name[MESSAGE_LEN];
 }pic_info;

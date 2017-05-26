@@ -195,18 +195,18 @@ uint32_t  gallery_add_photo(int peer_socket, char *file_name){
 
 }//End of Add Photo
 
-/*int gallery_add_keyword (int peer_socket, uint32_t id_photo, char *keyword){
+int gallery_add_keyword (int peer_socket, uint32_t id_photo, char *keyword){
   pic_info k_word;
   char *buff;
 
   k_word.message_type = 3;
-  k_word. pic_id = id_photo;
+  k_word.size = id_photo;
   strcpy(k_word.pic_name, keyword);
 
   //Sending keyword
   buff =(char *) malloc(sizeof (k_word));
   memcpy(buff, &k_word, sizeof(k_word));
-  int nbytes = send(peer_socket, buff, sizeof(p), 0);
+  int nbytes = send(peer_socket, buff, sizeof(k_word), 0);
   if(nbytes == -1){
     perror("Sending:");
     exit(0);
@@ -214,11 +214,11 @@ uint32_t  gallery_add_photo(int peer_socket, char *file_name){
 
   int re;
   //Reciving Server response
-  nbytes = recv(peer_socket, re, sizeof(re), 0);
+  nbytes = recv(peer_socket, &re, sizeof(re), 0);
   if(nbytes==-1){
     perror("Reciving:");
     exit(0);
   }
 
   return re;
-}//Assuming it returns 1 on success*/
+}//Assuming it returns 1 on success
