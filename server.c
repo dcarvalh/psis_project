@@ -156,8 +156,6 @@ void *cli_com(void *new_cli_sock){
   pic_info pi;
   uint32_t pic_id;
 
-
-
   while(1){
 
     //Reciving message from client
@@ -186,7 +184,7 @@ void *cli_com(void *new_cli_sock){
 
       printf("Picture Size: %lld\nPicture Name: %s\n", pi.size, pi.pic_name );
 
-      pic_id = sizeof(pi.pic_name)*pi.size;
+      pic_id = strlen(pi.pic_name)*pi.size;
       char server_img[1000];
       sprintf(server_img, "%d", pic_id);
 
@@ -216,10 +214,31 @@ void *cli_com(void *new_cli_sock){
     }
     ////////////////End ADD PICTURE!
 
-    ///Add Keyword protocol//////////////////
+    /////////////Add Keyword protocol//////////////////
     if(pi.message_type ==  3){
 
+      photolist *aux = head;
+      keyword *k_word, *k_head;
+      if((aux = GetPhoto(head, pi.size))!=NULL){
+        k_head = GetHead(head);
+        k_word = NewKeyWord(k_head, pi.pic_name);
+        pi.message_type = 1;
+        printf("Keyword added!\n");
+      }else{
+        pi.message_type = -1;
+      }
+      buff =  (char*)malloc(sizeof (pi));
+      memcpy(&pi, buff, sizeof(pi));
+      nbytes = sendto(fd, buff, sizeof(pi), 0,
+                      (struct sockaddr *) &client_addr, size_addr);
+      if(nbytes == -1){
+        perror("Sending");
+        exit(-1);
+      }
+      free(buff);
+
       printf("Keyword added");
+
     }
     ////////////////////END ADD KEYWORD
   }
