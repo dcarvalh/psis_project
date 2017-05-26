@@ -113,21 +113,25 @@ keyword *NewKeyWord(keyword *key_head, char *new_key_name){
   if(key_head == NULL){
     new->next_key = NULL;
   }else{
-    new->next_key =key_head;
+    new->next_key = key_head;
   }
-
   key_head = new;
   return key_head;
 }
 
-keyword *GetHead(photolist *head){
-    keyword *keyhead;
-    keyhead = head->key_head;
-
-    return keyhead;
+keyword *GetKeyHead(photolist *head){
+    return head->key_head;
 }
-/*
-void PrintKeyWords(photolist * ){
+
+void PrintKeyWords(photolist *k_head){
+  keyword *head;
+  printf("Keywords:\n");
+  for(head = k_head->key_head; head != NULL; head = head->next_key)
+    printf("  %s\n", head->keyword_name);
 
 }
-*/
+
+void Adding(photolist *aux, keyword *k_head){
+  aux->key_head = k_head;
+  return;
+}

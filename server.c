@@ -218,12 +218,13 @@ void *cli_com(void *new_cli_sock){
 
     /////////////Add Keyword protocol//////////////////
     if(pi.message_type ==  3){
-      /*
       photolist *aux = head;
-      keyword *k_word, *k_head;
+      keyword  *k_head;
       if((aux = GetPhoto(head, pi.size))!=NULL){
-        k_head = GetHead(head);
-        k_word = NewKeyWord(k_head, pi.pic_name);
+        k_head = GetKeyHead(aux);
+        k_head = NewKeyWord(k_head, pi.pic_name);
+        Adding(aux, k_head);
+        PrintKeyWords(aux);
         pi.message_type = 1;
         printf("Keyword added!\n");
       }else{
@@ -238,9 +239,6 @@ void *cli_com(void *new_cli_sock){
         exit(-1);
       }
       free(buff);
-
-      printf("Keyword added");
-      */
     }
     ////////////////////END ADD KEYWORD
   }
