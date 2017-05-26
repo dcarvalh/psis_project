@@ -33,6 +33,7 @@ int main (){
     perror("Sigaction:");
   }
 
+
   //Connecting client to a peer through the gateway
   peer_socket = gallery_connect(host, (in_port_t) htons(port));
 
@@ -46,9 +47,11 @@ int main (){
   char input [MESSAGE_LEN];
   char command;
 
+
   printf("Choose one of the following commands\nAdd photo - a\n");
   printf("Exit program - q\n");
   printf("Command:");
+
 
   while(end==1){
     //Getting input command
