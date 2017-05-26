@@ -13,6 +13,7 @@
 #include <sys/time.h> //timeout
 #define TIMEOUT_INTERVAL 5
 
+
 int gallery_connect(char * host, in_port_t port){
 
   struct sockaddr_in local_addr;
