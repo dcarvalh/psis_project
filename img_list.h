@@ -15,3 +15,9 @@ void PrintPhotoList(photolist * head);
 void FreePhotoList(photolist * head);
 
 keyword *NewKeyWord(keyword *key_head, char *new_key_name);
+
+void PrintKeyWords(photolist *k_head);
+
+keyword *GetKeyHead(photolist *head);
+
+void Adding(photolist *aux, keyword *k_head);
