@@ -126,5 +126,8 @@ keyword *GetHead(photolist *head){
 
     return keyhead;
 }
+/*
+void PrintKeyWords(photolist * ){
 
-void PrintKeyWords(photolist *)
+}
+*/
