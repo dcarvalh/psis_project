@@ -8,6 +8,8 @@ typedef struct message{
 }message;
 
 /*Message Type:
+*  5 - Client removes picture from server
+*  3 - Client adding keyword
 *  2 - Client Seding picture
 *  1 - Server connect
 *  0 - Exists a peer for client / Client asks the gateway for peer information

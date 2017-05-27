@@ -73,7 +73,7 @@ void PrintPhotoList(photolist * head)
     head=aux;
     i++;
   }
-  printf("----------------\n\n");
+  printf("---------------\n\n");
 	return;
 }
 

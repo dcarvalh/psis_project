@@ -240,6 +240,35 @@ void *cli_com(void *new_cli_sock){
       free(buff);
     }
     ////////////////////END ADD KEYWORD
+
+
+    /////////////Delete photo protocol//////////////////
+    if(pi.message_type == 5){
+
+      printf("ID to del: %d\n", pi.size);
+
+      int k;
+
+      k=DeletePhoto(head, pi.size)
+
+      buff =  (char*)malloc(sizeof (k));
+      memcpy(&pi, buff, sizeof(k));
+      nbytes = sendto(fd, buff, sizeof(k), 0,
+                      (struct sockaddr *) &client_addr, size_addr);
+      if(nbytes == -1){
+        perror("Sending");
+        exit(-1);
+      }
+      free(buff);
+    }
+    ////////////////////END DELETE PHOTO
+
+
+
+
+
+
+
   }
 }//END OF CLIENT THREAD
 
@@ -259,7 +288,7 @@ static void handle(int sig, siginfo_t *siginfo,void *context){
   close(sock_TCP);
   close(sock_gateway_fd);
   FreePhotoList(head);
-  PrintPhotoList(head);
+  //PrintPhotoList(head); //debug
   free(buff);
   free(act);
   exit(0);

@@ -222,3 +222,30 @@ int gallery_add_keyword (int peer_socket, uint32_t id_photo, char *keyword){
 
   return re;
 }//Assuming it returns 1 on success
+
+int gallery_delete_photo(int peer_socket, uint32_t id_photo){
+  pic_info p;
+  char *buff;
+
+  p.message_type = 5;
+  p.size = id_photo;
+
+  //Sending keyword
+  buff =(char *) malloc(sizeof (p));
+  memcpy(buff, &p, sizeof(p));
+  int nbytes = send(peer_socket, buff, sizeof(p), 0);
+  if(nbytes == -1){
+    perror("Sending:");
+    exit(0);
+  }
+
+  int re;
+  //Reciving Server response
+  nbytes = recv(peer_socket, &re, sizeof(re), 0);
+  if(nbytes==-1){
+    perror("Reciving:");
+    exit(0);
+  }
+
+  return re;
+}
