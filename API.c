@@ -141,10 +141,9 @@ uint32_t  gallery_add_photo(int peer_socket, char *file_name){
 
   //strcat(image_path, file_name);
 
-  printf("Image name %s\n", file_name);
   picture=fopen(file_name, "rb");
   if(picture==NULL){
-    perror("Filename:");
+    perror("Filename");
     return 0;
   }
 
@@ -191,7 +190,7 @@ uint32_t  gallery_add_photo(int peer_socket, char *file_name){
     exit(0);
   }
   memcpy(&foto_id, buff, sizeof(uint32_t));
-  printf("Picture: %s\n", p.pic_name);
+
   return foto_id;
 
 }//End of Add Photo

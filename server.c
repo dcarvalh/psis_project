@@ -226,7 +226,7 @@ void *cli_com(void *new_cli_sock){
         Adding(aux, k_head);
         PrintKeyWords(aux);
         pi.message_type = 1;
-        printf("Keyword added!\n");
+        printf("Keyword added!\n\n");
       }else{
         pi.message_type = -1;
       }
@@ -259,6 +259,8 @@ static void handle(int sig, siginfo_t *siginfo,void *context){
   close(new_cli_sock);
   close(sock_TCP);
   close(sock_gateway_fd);
+  FreePhotoList(head);
+  PrintPhotoList(head);
   free(buff);
   free(act);
   exit(0);
