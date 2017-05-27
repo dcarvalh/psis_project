@@ -237,6 +237,7 @@ void *cli_com(void *new_cli_sock){
         free(buff);
       break;
     }
+
       ////////////////////END ADD KEYWORD
       //// SEARCH PHOTO protocol
       case 4:
@@ -259,6 +260,7 @@ void *cli_com(void *new_cli_sock){
           exit(-1);
         }
         break;
+
       }
       default:
       {
@@ -284,6 +286,8 @@ static void handle(int sig, siginfo_t *siginfo,void *context){
   close(new_cli_sock);
   close(sock_TCP);
   close(sock_gateway_fd);
+  FreePhotoList(head);
+  PrintPhotoList(head);
   free(buff);
   free(act);
   exit(0);

@@ -3,6 +3,9 @@
 #include <string.h>
 #include "img_list.h"
 
+#include <unistd.h>
+
+
 #include <inttypes.h>
 
 
@@ -67,9 +70,11 @@ void PrintPhotoList(photolist * head)
     printf("--- photo %d ---\n", i);
     printf("%s\n", head->file_name);
     printf("%" PRIu32 "\n", head->id_photo);
+    PrintKeyWords(head);
     head=aux;
     i++;
   }
+  printf("----------------\n\n");
 	return;
 }
 
@@ -83,8 +88,14 @@ void FreePhotoList(photolist * head){
   photolist * aux;
   aux = head;
 
+  char str[sizeof(uint32_t)]; //var para conversão para char *
+
   while(aux != NULL){
     aux=head->next;
+    free(head->file_name);
+    sprintf(str, "%d", head->id_photo);
+    unlink(str);
+    FreeKeywords(head->key_head);
     free(head);
     head=aux;
   }
@@ -124,9 +135,8 @@ keyword *GetKeyHead(photolist *head){
 
 void PrintKeyWords(photolist *k_head){
   keyword *head;
-  printf("Keywords:\n");
   for(head = k_head->key_head; head != NULL; head = head->next_key)
-    printf("  %s\n", head->keyword_name);
+    printf("\t%s\n", head->keyword_name);
 
 }
 
@@ -134,6 +144,7 @@ void Adding(photolist *aux, keyword *k_head){
   aux->key_head = k_head;
   return;
 }
+
 
 int SearchPhotosbyKeyWords(photolist *head, char *kword, uint32_t *photos){
   photolist *aux;
@@ -152,4 +163,23 @@ int SearchPhotosbyKeyWords(photolist *head, char *kword, uint32_t *photos){
   }
 
     return n;
+
+void FreeKeywords(keyword * head){
+  if(head==NULL){
+    printf("No keywords\n");
+    return;
+  }
+
+  keyword * aux;
+  aux = head;
+
+  while(aux != NULL){
+    aux=head->next_key;
+    free(head->keyword_name);
+    free(head);
+    head=aux;
+  }
+  printf("Keywords free\n");
+	return;
+
 }
