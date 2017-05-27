@@ -68,7 +68,8 @@ void PrintPhotoList(photolist * head)
     printf("--- photo %d ---\n", i);
     printf("%s\n", head->file_name);
     printf("%" PRIu32 "\n", head->id_photo);
-    PrintKeyWords(head);
+    if(head->key_head != NULL)
+      PrintKeyWords(head);
     head=aux;
     i++;
   }
@@ -128,14 +129,19 @@ keyword *NewKeyWord(keyword *key_head, char *new_key_name){
 }
 
 keyword *GetKeyHead(photolist *head){
-    return head->key_head;
+  printf("Keyword added to " "%" PRIu32 "\n", head->id_photo);
+  return head->key_head;
 }
 
 void PrintKeyWords(photolist *k_head){
   keyword *head;
-  for(head = k_head->key_head; head != NULL; head = head->next_key)
-    printf("\t%s\n", head->keyword_name);
-
+  printf("keywords: ");
+  for(head = k_head->key_head; head != NULL; head = head->next_key){
+    printf("%s", head->keyword_name);
+    if (head->next_key != NULL)
+      printf(", ");
+  }
+  printf("\n");
 }
 
 void Adding(photolist *aux, keyword *k_head){
