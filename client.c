@@ -10,6 +10,7 @@
 #include <string.h>
 #include "API.h"
 #include <signal.h>
+#include <inttypes.h>
 
 //Variables that are used in the signal handlelign function
 int end =1;
@@ -47,37 +48,43 @@ int main (){
   char command;
 
 
+
   printf("\nChoose one of the following commands\n");
   printf("\ta - Add photo\n");
-  printf("\tk - Add a keyword to the picture \n");
+  printf("\tk - Add a keyword to the picture\n");
+  printf("\ts - Search for photos by keyword\n");
   printf("\tq - Exit program \n");
   printf("Command: ");
+
 
 
   int k;
   int key_id;
   char *k_word;
+  command ='\0';
   while(end==1){
     //Getting input command
     fgets(input, MESSAGE_LEN, stdin);
     sscanf(input,"%c",&command);
     printf("\n");
-
     switch(command){
     //Add-Photo
     case 'a' :
+    {
       printf("Input the name of the image you want to send\nImage name: ");
       fgets(input, MESSAGE_LEN, stdin);
       sscanf(input,"%s",image_name);
       photo_add = gallery_add_photo(peer_socket, image_name);
-      printf("Picture ID: %d\n",photo_add);
+
+      printf("Picture ID: %d\n\n",photo_add);
 
       break;
+    }
     //Quit Program
     case 'q':
+    {
       printf("Exiting the program\n");
       p.message_type = -99;
-      printf("Message Type: %d\n",p.message_type);
       char *buff =(char *) malloc(sizeof (p));
       memcpy(buff, &p, sizeof(p));
       send(peer_socket, buff, sizeof(p),0);
@@ -85,13 +92,15 @@ int main (){
       free(buff);
       exit(0);
       break;
+    }
     //Add Keywords
     case 'k':
+    {
       printf("Insert keyword you want to add: ");
       fgets(input, MESSAGE_LEN, stdin);
       k_word = malloc(sizeof(input)*sizeof(char));
       sscanf(input,"%s",k_word);
-      printf("\nInsert the ID of the photo to add the keyword: ");
+      printf("Insert the ID of the photo to add the keyword: ");
       fgets(input, MESSAGE_LEN, stdin);
       sscanf(input,"%d",&key_id);//  "%"PRIu32
       k = gallery_add_keyword(peer_socket, key_id, k_word);
@@ -101,21 +110,45 @@ int main (){
         printf("Could not add keyword\nUnlucky\n");
       printf("\n");
       break;
+    }
+    //Search photo
+    case 's':
+    {
+      uint32_t *id_photo;
+      printf("Insert keyword you want to search: ");
+      fgets(input, MESSAGE_LEN, stdin);
+      k_word = malloc(sizeof(input)*sizeof(char));
+      sscanf(input, "%s", k_word);
+      if((k=gallery_search_photo(peer_socket, k_word, &id_photo)) != 0 ){
+        printf("Photos with '%s' as keyword:\n",k_word);
+        for(int i=0; i<k; i++){
+          printf("\t");  
+          printf("%"PRIu32"\n", id_photo[i]);
+        }
+        printf("Number of photos: %d\n\n", k);
+      }else if(k ==0){
+              printf("No picture exists with that keyword\n");
+              printf("Problem making the connection\n");
+            }
+      break;
+    }
     //Default input hadeling
     default:
       printf("The command you input is not valid\nTry again faggot\n");
     }
+
     printf("\nChoose one of the following commands\n");
     printf("\ta - Add photo\n");
     printf("\tk - Add a keyword to the picture \n");
+    printf("\ts - Search for photos by keyword\n");
     printf("\tq - Exit program \n");
     printf("Command: ");
+
   }
 
-  printf("END : %d\n", end);
+
   //Sending message to peer telling the client is disconnecting
   p.message_type = -99;
-  printf("Message Type: %d\n",p.message_type);
   char *buff =(char *) malloc(sizeof (p));
   memcpy(buff, &p, sizeof(p));
   int nbytes = send(peer_socket, buff, sizeof(p),0);

@@ -161,8 +161,7 @@ void *cli_com(void *new_cli_sock){
     //Reciving message from client
     buff =  (char*)malloc(sizeof (pi));
     int nbytes = recv(fd, buff ,sizeof (pi), 0);
-                    //  (struct sockaddr *) &client_addr, &size_addr);
-    if(nbytes==0){
+    if(nbytes==-1){
       perror("Reciving");
       sleep(5);
     }
@@ -170,77 +169,105 @@ void *cli_com(void *new_cli_sock){
     free(buff);
 
 
-    //Exiting protocol
-    if(pi.message_type == -99){
-      client_count--;
-      printf("A client has left.\nClient Count: %d\n\n", client_count);
-      int retval = 1;
-      pthread_exit ((void*) &retval);
-    }
-    ///////////////////
-
-    //Add_picture protocol
-    if(pi.message_type == 2){
-
-      printf("Picture Size: %d\nPicture Name: %s\n", pi.size, pi.pic_name );
-
-      clock_t current = clock();
-
-      pic_id = getpid() + (current*10000);
-      char server_img[1000];
-      sprintf(server_img, "%d", pic_id);
-
-      //Recive byte image array
-      printf("Reading Picture Byte Array\n");
-      char p_array[pi.size];
-      read(fd, p_array, pi.size);
-
-      //Adding photo to the photo lista
-      head = NewPhoto(head, pic_id, pi.pic_name);
-      //Reconstruct byte array into picture
-      printf("Converting Byte Array to Picture\n");
-
-      FILE *image;
-      image = fopen( server_img, "w");
-      fwrite(p_array, 1, sizeof(p_array), image);
-      fclose(image);
-      nbytes = sendto(fd, &pic_id, sizeof(pic_id), 0,
-                      (struct sockaddr *) &client_addr, size_addr);
-      if(nbytes == -1){
-        perror("Sending");
-        exit(-1);
+    switch (pi.message_type){
+      //Exiting protocol
+      case -99:
+      {
+        int retval = 1;
+        client_count--;
+        printf("A client has left.\nClient Count: %d\n\n", client_count);
+        pthread_exit ((void*) &retval);
+      break;
       }
-
-      printf("Picture Added!\n\n");
-      PrintPhotoList(head);
+      ///////////////////
+      //Add_picture protocol
+      case 2:
+      {
+        char server_img[1000];
+        char p_array[pi.size];
+        FILE *image;
+        printf("Picture Size: %d\nPicture Name: %s\n", pi.size, pi.pic_name );
+        clock_t current = clock();
+        pic_id = getpid() + (current*10000);
+        sprintf(server_img, "%d", pic_id);
+        //Recive byte image array
+        printf("Reading Picture Byte Array\n");
+        read(fd, p_array, pi.size);
+        //Adding photo to the photo lista
+        head = NewPhoto(head, pic_id, pi.pic_name);
+        //Reconstruct byte array into picture
+        printf("Converting Byte Array to Picture\n");
+        image = fopen( server_img, "w");
+        fwrite(p_array, 1, sizeof(p_array), image);
+        fclose(image);
+        nbytes = sendto(fd, &pic_id, sizeof(pic_id), 0,
+                        (struct sockaddr *) &client_addr, size_addr);
+        if(nbytes == -1){
+          perror("Sending");
+          exit(-1);
+        }
+        printf("Picture Added!\n\n");
+        PrintPhotoList(head);
+      break;
     }
-    ////////////////End ADD PICTURE!
-
-    /////////////Add Keyword protocol//////////////////
-    if(pi.message_type ==  3){
-      photolist *aux = head;
-      keyword  *k_head;
-      if((aux = GetPhoto(head, pi.size))!=NULL){
-        k_head = GetKeyHead(aux);
-        k_head = NewKeyWord(k_head, pi.pic_name);
-        Adding(aux, k_head);
-        PrintKeyWords(aux);
-        pi.message_type = 1;
-        printf("Keyword added!\n\n");
-      }else{
-        pi.message_type = -1;
-      }
-      buff =  (char*)malloc(sizeof (pi));
-      memcpy(&pi, buff, sizeof(pi));
-      nbytes = sendto(fd, buff, sizeof(pi), 0,
-                      (struct sockaddr *) &client_addr, size_addr);
-      if(nbytes == -1){
-        perror("Sending");
-        exit(-1);
-      }
-      free(buff);
+      ////////////////End ADD PICTURE!
+      /////////////Add Keyword protocol//////////////////
+      case 3:
+      {
+        photolist *aux = head;
+        keyword  *k_head;
+        if((aux = GetPhoto(head, pi.size))!=NULL){
+          k_head = GetKeyHead(aux);
+          k_head = NewKeyWord(k_head, pi.pic_name);
+          Adding(aux, k_head);
+          PrintKeyWords(aux);
+          pi.message_type = 1;
+          printf("Keyword added!\n");
+        }else{
+          pi.message_type = -1;
+        }
+        buff =  (char*)malloc(sizeof (pi));
+        memcpy(&pi, buff, sizeof(pi));
+        nbytes = sendto(fd, buff, sizeof(pi), 0,
+                        (struct sockaddr *) &client_addr, size_addr);
+        if(nbytes == -1){
+          perror("Sending");
+          exit(-1);
+        }
+        free(buff);
+      break;
     }
-    ////////////////////END ADD KEYWORD
+
+      ////////////////////END ADD KEYWORD
+      //// SEARCH PHOTO protocol
+      case 4:
+      {
+        uint32_t photos[50];
+
+        int n = SearchPhotosbyKeyWords(head, pi.pic_name, photos);
+
+        printf("Nº Photos: %d\n", n);
+        //Sending amount of photos found
+        nbytes = sendto(fd, &n, sizeof(n), 0,
+                        (struct sockaddr *) &client_addr, size_addr);
+        for(int i=0; photos[i] != 0; i++)
+          printf("%" PRIu32 "\n", photos[i]);
+        //Sending array as a byte stream
+        nbytes = sendto(fd, &photos, n*sizeof(uint32_t), 0,
+                        (struct sockaddr *) &client_addr, size_addr);
+        if(nbytes == -1){
+          perror("Sending");
+          exit(-1);
+        }
+        break;
+
+      }
+      default:
+      {
+          printf("Invalid Message Type recived\n");
+          sleep(5);
+      }
+    }
   }
 }//END OF CLIENT THREAD
 
