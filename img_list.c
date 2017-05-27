@@ -168,7 +168,8 @@ int SearchPhotosbyKeyWords(photolist *head, char *kword, uint32_t *photos){
     }
   }
 
-    return n;
+  return n;
+}
 
 void FreeKeywords(keyword * head){
   if(head==NULL){
