@@ -21,3 +21,5 @@ void PrintKeyWords(photolist *k_head);
 keyword *GetKeyHead(photolist *head);
 
 void Adding(photolist *aux, keyword *k_head);
+
+int SearchPhotosbyKeyWords(photolist *head, char *kword, uint32_t *photos);
