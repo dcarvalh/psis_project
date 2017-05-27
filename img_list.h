@@ -22,8 +22,8 @@ keyword *GetKeyHead(photolist *head);
 
 void Adding(photolist *aux, keyword *k_head);
 
-
 int SearchPhotosbyKeyWords(photolist *head, char *kword, uint32_t *photos);
 
 void FreeKeywords(keyword * head);
 
+photolist * DeletePhoto(photolist *head, photolist *aux2);

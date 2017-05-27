@@ -51,7 +51,8 @@ int main (){
 
   printf("\nChoose one of the following commands\n");
   printf("\ta - Add photo\n");
-  printf("\tk - Add a keyword to the picture\n");
+  printf("\td - Delete photo\n");
+  printf("\tk - Add a keyword to the picture \n");
   printf("\ts - Search for photos by keyword\n");
   printf("\tq - Exit program \n");
   printf("Command: ");
@@ -68,7 +69,7 @@ int main (){
     sscanf(input,"%c",&command);
     printf("\n");
     switch(command){
-    //Add-Photo
+    //Add Photo
     case 'a' :
     {
       printf("Input the name of the image you want to send\nImage name: ");
@@ -105,10 +106,27 @@ int main (){
       sscanf(input,"%d",&key_id);//  "%"PRIu32
       k = gallery_add_keyword(peer_socket, key_id, k_word);
       if(k == 1)
-        printf("Keyword Sucessefully Added!\n");
+        printf("Keyword sucessefully Added!\n");
       else
         printf("Could not add keyword\nUnlucky\n");
       printf("\n");
+      break;
+    }
+    //Delete photo
+    case 'd':
+    {
+      printf("\nInsert the ID of the photo to delete: ");
+      fgets(input, MESSAGE_LEN, stdin);
+      sscanf(input,"%d",&key_id);//  "%"PRIu32
+
+      k=gallery_delete_photo(peer_socket, key_id);
+
+      if(k == 1)
+        printf("Photo sucessefully deleted!\n");
+      else if (k == 0)
+        printf("Photo does not exist.\n");
+      else
+        printf("Error deleting the photo.\n");
       break;
     }
     //Search photo
@@ -139,6 +157,7 @@ int main (){
 
     printf("\nChoose one of the following commands\n");
     printf("\ta - Add photo\n");
+    printf("\td - Delete photo\n");
     printf("\tk - Add a keyword to the picture \n");
     printf("\ts - Search for photos by keyword\n");
     printf("\tq - Exit program \n");

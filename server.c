@@ -159,6 +159,7 @@ void *cli_com(void *new_cli_sock){
   while(1){
 
     //Reciving message from client
+    pi.size=0; //inicializar o ID
     buff =  (char*)malloc(sizeof (pi));
     int nbytes = recv(fd, buff ,sizeof (pi), 0);
     if(nbytes==-1){
@@ -208,12 +209,13 @@ void *cli_com(void *new_cli_sock){
         }
         printf("Picture Added!\n\n");
         PrintPhotoList(head);
-      break;
-    }
+        break;
+      }
       ////////////////End ADD PICTURE!
       /////////////Add Keyword protocol//////////////////
       case 3:
       {
+        int k;
         photolist *aux = head;
         keyword  *k_head;
         if((aux = GetPhoto(head, pi.size))!=NULL){
@@ -221,24 +223,20 @@ void *cli_com(void *new_cli_sock){
           k_head = NewKeyWord(k_head, pi.pic_name);
           Adding(aux, k_head);
           PrintKeyWords(aux);
-          pi.message_type = 1;
-          printf("Keyword added!\n");
+          k = 1;
         }else{
-          pi.message_type = -1;
+          k = -1;
         }
-        buff =  (char*)malloc(sizeof (pi));
-        memcpy(&pi, buff, sizeof(pi));
-        nbytes = sendto(fd, buff, sizeof(pi), 0,
+        nbytes = sendto(fd, &k, sizeof(k), 0,
                         (struct sockaddr *) &client_addr, size_addr);
         if(nbytes == -1){
           perror("Sending");
           exit(-1);
         }
-        free(buff);
-      break;
-    }
-
+        break;
+      }
       ////////////////////END ADD KEYWORD
+        
       //// SEARCH PHOTO protocol
       case 4:
       {
@@ -260,14 +258,41 @@ void *cli_com(void *new_cli_sock){
           exit(-1);
         }
         break;
+      } 
 
+      /////////////Delete photo protocol//////////////////
+      case 5:
+      {
+        int k;
+        photolist *aux;
+        if((aux = GetPhoto(head, pi.size))!=NULL){
+          printf("Delete photo " "%" PRIu32 "\n", pi.size);
+          head=DeletePhoto(head, aux);
+          if(head==(photolist * )-1){
+            perror("deleting photo");
+            exit(-1);
+          }
+          k = 1;
+        }else{
+          k = 0;
+        }
+
+        nbytes = sendto(fd, &k, sizeof(k), 0,
+                        (struct sockaddr *) &client_addr, size_addr);
+        if(nbytes == -1){
+          perror("Sending");
+          exit(-1);
+        }
+        break;
       }
+      ////////////////////END DELETE PHOTO
       default:
       {
           printf("Invalid Message Type recived\n");
           sleep(5);
       }
     }
+     
   }
 }//END OF CLIENT THREAD
 
@@ -287,7 +312,7 @@ static void handle(int sig, siginfo_t *siginfo,void *context){
   close(sock_TCP);
   close(sock_gateway_fd);
   FreePhotoList(head);
-  PrintPhotoList(head);
+  //PrintPhotoList(head); //debug
   free(buff);
   free(act);
   exit(0);

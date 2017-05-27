@@ -70,11 +70,12 @@ void PrintPhotoList(photolist * head)
     printf("--- photo %d ---\n", i);
     printf("%s\n", head->file_name);
     printf("%" PRIu32 "\n", head->id_photo);
-    PrintKeyWords(head);
+    if(head->key_head != NULL)
+      PrintKeyWords(head);
     head=aux;
     i++;
   }
-  printf("----------------\n\n");
+  printf("---------------\n\n");
 	return;
 }
 
@@ -105,7 +106,7 @@ void FreePhotoList(photolist * head){
 
 photolist *GetPhoto(photolist *head, uint32_t id){
   photolist *aux;
-  for(aux = head; aux!=NULL; aux= aux->next){
+  for(aux = head; aux!=NULL; aux = aux->next){
     if(aux->id_photo == id){
       return aux;
     }
@@ -130,14 +131,19 @@ keyword *NewKeyWord(keyword *key_head, char *new_key_name){
 }
 
 keyword *GetKeyHead(photolist *head){
-    return head->key_head;
+  printf("Keyword added to " "%" PRIu32 "\n", head->id_photo);
+  return head->key_head;
 }
 
 void PrintKeyWords(photolist *k_head){
   keyword *head;
-  for(head = k_head->key_head; head != NULL; head = head->next_key)
-    printf("\t%s\n", head->keyword_name);
-
+  printf("keywords: ");
+  for(head = k_head->key_head; head != NULL; head = head->next_key){
+    printf("%s", head->keyword_name);
+    if (head->next_key != NULL)
+      printf(", ");
+  }
+  printf("\n");
 }
 
 void Adding(photolist *aux, keyword *k_head){
@@ -182,4 +188,40 @@ void FreeKeywords(keyword * head){
   printf("Keywords free\n");
 	return;
 
+}
+
+photolist * DeletePhoto(photolist *head, photolist *rem){
+
+  char str[sizeof(uint32_t)]; //var para conversão para char *
+
+  if(head==rem){    //remover o head
+    head=head->next;
+    free(rem->file_name);
+    sprintf(str, "%d", rem->id_photo);
+    unlink(str);
+    FreeKeywords(rem->key_head);
+    free(rem);
+    return head;
+  }
+
+  photolist *aux;
+  photolist *aux2;
+  aux2=head;
+  aux=head->next;
+
+  while(aux != NULL){   //remover outro
+    if(aux==rem){
+      aux2->next=aux->next;
+      free(rem->file_name);
+      sprintf(str, "%d", rem->id_photo);
+      unlink(str);
+      FreeKeywords(rem->key_head);
+      free(rem);
+      return head;
+    }
+    aux=aux->next;
+    aux2=aux2->next;
+  }
+
+  return (photolist *) -1;
 }
