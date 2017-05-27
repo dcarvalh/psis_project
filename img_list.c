@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include "img_list.h"
+
 #include <unistd.h>
+
 
 #include <inttypes.h>
 
@@ -149,6 +151,25 @@ void Adding(photolist *aux, keyword *k_head){
   return;
 }
 
+
+int SearchPhotosbyKeyWords(photolist *head, char *kword, uint32_t *photos){
+  photolist *aux;
+  int n = 0;
+  for(aux=head; aux!=NULL; aux=aux->next){
+    if(n==50)
+      break;
+    for(keyword *k_head = aux->key_head; k_head !=NULL; k_head=k_head->next_key){
+      if(n==50)
+        break;
+      if(strcmp(k_head->keyword_name,kword) == 0){
+            photos[n]=aux->id_photo;
+            n++;
+      }
+    }
+  }
+
+    return n;
+
 void FreeKeywords(keyword * head){
   if(head==NULL){
     printf("No keywords\n");
@@ -166,6 +187,7 @@ void FreeKeywords(keyword * head){
   }
   printf("Keywords free\n");
 	return;
+
 }
 
 photolist * DeletePhoto(photolist *head, photolist *rem){

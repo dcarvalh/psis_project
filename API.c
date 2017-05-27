@@ -11,6 +11,7 @@
 #include <netinet/in.h>
 #include <sys/stat.h>
 #include <sys/time.h> //timeout
+#include <inttypes.h>
 #define TIMEOUT_INTERVAL 5
 
 
@@ -212,16 +213,55 @@ int gallery_add_keyword (int peer_socket, uint32_t id_photo, char *keyword){
     exit(0);
   }
 
-  int re;
-  //Reciving Server response
-  nbytes = recv(peer_socket, &re, sizeof(re), 0);
+  buff =  (char*)malloc(sizeof (k_word));
+  nbytes = recv(peer_socket, buff ,sizeof (k_word), 0);
   if(nbytes==-1){
-    perror("Reciving:");
+    perror("Reciving");
+    sleep(5);
+  }
+  memcpy(&k_word, buff, sizeof(k_word));
+  int re = k_word.message_type;
+  free(buff);
+  return re;
+}////////////// END OF ADD KEYWORD
+
+int gallery_search_photo(int peer_socket, char *keyword, uint32_t **id_photos){
+
+  pic_info p_search;
+  char *buff;
+
+  p_search.message_type = 4;
+  strcpy(p_search.pic_name, keyword);
+  //Sending message type to peer so it know what action is pretended
+  buff = (char *) malloc(sizeof(p_search));
+  memcpy(buff, &p_search, sizeof(p_search));
+  int nbytes = send(peer_socket, buff, sizeof(p_search), 0);
+  if(nbytes == -1){
+    perror("Sending");
     exit(0);
   }
+  free(buff);
 
-  return re;
-}//Assuming it returns 1 on success
+  //Reciving number of photos encoutered
+  int n_photos;
+  nbytes = recv(peer_socket, &n_photos, sizeof(n_photos), 0);
+  if(nbytes == -1){
+    perror("Reciving");
+    return -1;
+  }
+
+  if(n_photos != -1 && n_photos != 0){
+    //Getting array stream of bytes///////////////////////////////////////////////////////
+    (*id_photos) = malloc(n_photos*sizeof(uint32_t));
+    nbytes = recv(peer_socket, (*id_photos), n_photos*sizeof(uint32_t),0);
+    /////////////////////////////////////////////////
+    if (n_photos == 50)
+      printf("Peer can only return 50 photos maximum\n");
+    return n_photos;
+  }else{
+    return -1;
+  }
+}// END OF SEARCH PHOTO
 
 int gallery_delete_photo(int peer_socket, uint32_t id_photo){
   pic_info p;
