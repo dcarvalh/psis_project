@@ -23,3 +23,5 @@ keyword *GetKeyHead(photolist *head);
 void Adding(photolist *aux, keyword *k_head);
 
 void FreeKeywords(keyword * head);
+
+photolist * DeletePhoto(photolist *head, photolist *aux2);

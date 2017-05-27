@@ -104,7 +104,7 @@ void FreePhotoList(photolist * head){
 
 photolist *GetPhoto(photolist *head, uint32_t id){
   photolist *aux;
-  for(aux = head; aux!=NULL; aux= aux->next){
+  for(aux = head; aux!=NULL; aux = aux->next){
     if(aux->id_photo == id){
       return aux;
     }
@@ -166,4 +166,40 @@ void FreeKeywords(keyword * head){
   }
   printf("Keywords free\n");
 	return;
+}
+
+photolist * DeletePhoto(photolist *head, photolist *rem){
+
+  char str[sizeof(uint32_t)]; //var para conversão para char *
+
+  if(head==rem){    //remover o head
+    head=head->next;
+    free(rem->file_name);
+    sprintf(str, "%d", rem->id_photo);
+    unlink(str);
+    FreeKeywords(rem->key_head);
+    free(rem);
+    return head;
+  }
+
+  photolist *aux;
+  photolist *aux2;
+  aux2=head;
+  aux=head->next;
+
+  while(aux != NULL){   //remover outro
+    if(aux==rem){
+      aux2->next=aux->next;
+      free(rem->file_name);
+      sprintf(str, "%d", rem->id_photo);
+      unlink(str);
+      FreeKeywords(rem->key_head);
+      free(rem);
+      return head;
+    }
+    aux=aux->next;
+    aux2=aux2->next;
+  }
+
+  return (photolist *) -1;
 }

@@ -159,6 +159,7 @@ void *cli_com(void *new_cli_sock){
   while(1){
 
     //Reciving message from client
+    pi.size=0; //inicializar o ID
     buff =  (char*)malloc(sizeof (pi));
     int nbytes = recv(fd, buff ,sizeof (pi), 0);
                     //  (struct sockaddr *) &client_addr, &size_addr);
@@ -218,6 +219,7 @@ void *cli_com(void *new_cli_sock){
 
     /////////////Add Keyword protocol//////////////////
     if(pi.message_type ==  3){
+      int k;
       photolist *aux = head;
       keyword  *k_head;
       if((aux = GetPhoto(head, pi.size))!=NULL){
@@ -225,19 +227,16 @@ void *cli_com(void *new_cli_sock){
         k_head = NewKeyWord(k_head, pi.pic_name);
         Adding(aux, k_head);
         PrintKeyWords(aux);
-        pi.message_type = 1;
+        k = 1;
       }else{
-        pi.message_type = -1;
+        k = -1;
       }
-      buff =  (char*)malloc(sizeof (pi));
-      memcpy(&pi, buff, sizeof(pi));
-      nbytes = sendto(fd, buff, sizeof(pi), 0,
+      nbytes = sendto(fd, &k, sizeof(k), 0,
                       (struct sockaddr *) &client_addr, size_addr);
       if(nbytes == -1){
         perror("Sending");
         exit(-1);
       }
-      free(buff);
     }
     ////////////////////END ADD KEYWORD
 
@@ -245,29 +244,28 @@ void *cli_com(void *new_cli_sock){
     /////////////Delete photo protocol//////////////////
     if(pi.message_type == 5){
 
-      printf("ID to del: %d\n", pi.size);
-
       int k;
+      photolist *aux;
+      if((aux = GetPhoto(head, pi.size))!=NULL){
+        printf("Delete photo " "%" PRIu32 "\n", pi.size);
+        head=DeletePhoto(head, aux);
+        if(head==(photolist * )-1){
+          perror("deleting photo");
+          exit(-1);
+        }
+        k = 1;
+      }else{
+        k = 0;
+      }
 
-      k=DeletePhoto(head, pi.size)
-
-      buff =  (char*)malloc(sizeof (k));
-      memcpy(&pi, buff, sizeof(k));
-      nbytes = sendto(fd, buff, sizeof(k), 0,
+      nbytes = sendto(fd, &k, sizeof(k), 0,
                       (struct sockaddr *) &client_addr, size_addr);
       if(nbytes == -1){
         perror("Sending");
         exit(-1);
       }
-      free(buff);
     }
     ////////////////////END DELETE PHOTO
-
-
-
-
-
-
 
   }
 }//END OF CLIENT THREAD

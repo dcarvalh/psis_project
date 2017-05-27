@@ -108,15 +108,14 @@ int main (){
       fgets(input, MESSAGE_LEN, stdin);
       sscanf(input,"%d",&key_id);//  "%"PRIu32
 
-      k=gallery_delete_photo(peer_socket, key_id)
+      k=gallery_delete_photo(peer_socket, key_id);
 
       if(k == 1)
         printf("Photo sucessefully deleted!\n");
-      else if (k == 0) {
+      else if (k == 0)
         printf("Photo does not exist.\n");
-      }else{
+      else
         printf("Error deleting the photo.\n");
-      }
 
       break;
 
