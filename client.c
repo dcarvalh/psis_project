@@ -172,7 +172,6 @@ int main (){
         break;
       }else{
         printf("Download successful :D\nIt's a boy!\n\n");
-        return 1;
         break;
       }
     }
