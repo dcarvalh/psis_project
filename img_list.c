@@ -226,3 +226,7 @@ photolist * DeletePhoto(photolist *head, photolist *rem){
 
   return (photolist *) -1;
 }
+
+char *GetPhotoName(photolist *head){
+  return head->file_name;
+}

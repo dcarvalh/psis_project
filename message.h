@@ -1,5 +1,4 @@
 #define MESSAGE_LEN 20
-#define BICHO   printf("KAKAKAKAKAKAKAKAKAK4AKAKAKAKAKAKA!");
 #include <stdint.h>
 typedef struct message{
   char addr[MESSAGE_LEN];

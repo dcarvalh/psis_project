@@ -270,7 +270,7 @@ int gallery_delete_photo(int peer_socket, uint32_t id_photo){
   p.message_type = 5;
   p.size = id_photo;
 
-  //Sending keyword
+  //Sending ID
   buff =(char *) malloc(sizeof (p));
   memcpy(buff, &p, sizeof(p));
   int nbytes = send(peer_socket, buff, sizeof(p), 0);
@@ -288,4 +288,42 @@ int gallery_delete_photo(int peer_socket, uint32_t id_photo){
   }
 
   return re;
+}
+
+
+
+int gallery_get_photo_name(int peer_socket, uint32_t id_photo, char **photo_name){
+  pic_info p;
+  char *buff;
+
+  p.message_type = 6;
+  p.size = id_photo;
+
+  //Sending ID
+  buff =(char *) malloc(sizeof (p));
+  memcpy(buff, &p, sizeof(p));
+  int nbytes = send(peer_socket, buff, sizeof(p), 0);
+  if(nbytes == -1){
+    perror("Sending:");
+    exit(0);
+  }
+
+  nbytes = recv(peer_socket, buff ,sizeof (p), 0);
+  if(nbytes==-1){
+    perror("Reciving");
+    sleep(5);
+  }
+  memcpy(&p, buff, sizeof(p));
+  int re = p.message_type;
+  free(buff);
+
+  if(re==1){
+    strcpy((*photo_name),p.pic_name);
+  }
+
+  return re;
+/*
+  1 - exists
+  0 - does not exist
+  -1 - error*/
 }

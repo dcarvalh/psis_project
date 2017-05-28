@@ -236,7 +236,7 @@ void *cli_com(void *new_cli_sock){
         break;
       }
       ////////////////////END ADD KEYWORD
-        
+
       //// SEARCH PHOTO protocol
       case 4:
       {
@@ -258,7 +258,7 @@ void *cli_com(void *new_cli_sock){
           exit(-1);
         }
         break;
-      } 
+      }
 
       /////////////Delete photo protocol//////////////////
       case 5:
@@ -285,6 +285,31 @@ void *cli_com(void *new_cli_sock){
         }
         break;
       }
+      case 6:
+      {
+        pic_info p;
+        char * photo_name;
+        photolist *aux;
+        if((aux = GetPhoto(head, pi.size))!=NULL){
+          photo_name=GetPhotoName(aux);
+          strcpy(p.pic_name,photo_name);
+          p.message_type = 1;
+        }else{
+          p.message_type  = 0;
+        }
+
+        char *buff;
+        buff =(char *) malloc(sizeof (p));
+        memcpy(buff, &p, sizeof(p));
+
+        nbytes = sendto(fd, buff, sizeof(p), 0,
+                        (struct sockaddr *) &client_addr, size_addr);
+        if(nbytes == -1){
+          perror("Sending");
+          exit(-1);
+        }
+        break;
+      }
       ////////////////////END DELETE PHOTO
       default:
       {
@@ -292,7 +317,7 @@ void *cli_com(void *new_cli_sock){
           sleep(5);
       }
     }
-     
+
   }
 }//END OF CLIENT THREAD
 
