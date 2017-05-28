@@ -27,3 +27,5 @@ int SearchPhotosbyKeyWords(photolist *head, char *kword, uint32_t *photos);
 void FreeKeywords(keyword * head);
 
 photolist * DeletePhoto(photolist *head, photolist *aux2);
+
+char *GetPhotoName(photolist *head);

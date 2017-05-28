@@ -53,6 +53,7 @@ int main (){
   printf("\ta - Add photo\n");
   printf("\td - Delete photo\n");
   printf("\tk - Add a keyword to the picture \n");
+  printf("\tn - Get the name of the photo \n");
   printf("\ts - Search for photos by keyword\n");
   printf("\tg - Download a photo\n");
   printf("\tq - Exit program \n");
@@ -151,6 +152,33 @@ int main (){
             }
       break;
     }
+
+    case 'n':
+    {
+      printf("\nInsert the ID of the photo you wish to know the name: ");
+      fgets(input, MESSAGE_LEN, stdin);
+      sscanf(input,"%d",&key_id);//  "%"PRIu32
+
+      char **photo_name;
+      char * file_name;
+
+      file_name =(char *) malloc(MESSAGE_LEN);
+      photo_name=&file_name;
+
+      k=gallery_get_photo_name(peer_socket, key_id, photo_name);
+
+      if(k == 1)
+        printf("Photo name is %s \n", file_name);
+      else if (k == 0)
+        printf("Photo does not exist.\n");
+      else
+        printf("Error searching the name of the photo.\n");
+
+      free(file_name);
+      
+      break; 
+    }
+
     case 'g':
     {
       //Getting necessary information for th function
@@ -184,6 +212,7 @@ int main (){
     printf("\ta - Add photo\n");
     printf("\td - Delete photo\n");
     printf("\tk - Add a keyword to the picture \n");
+    printf("\tn - Get the name of the photo \n");
     printf("\ts - Search for photos by keyword\n");
     printf("\tg - Download a photo\n");
     printf("\tq - Exit program \n");
