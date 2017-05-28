@@ -135,12 +135,8 @@ uint32_t  gallery_add_photo(int peer_socket, char *file_name){
 
   uint32_t foto_id;
 
-  //strcpy(file_name, file_name);
-
   FILE *picture;
   long pic_size;
-
-  //strcat(image_path, file_name);
 
   picture=fopen(file_name, "rb");
   if(picture==NULL){
@@ -169,7 +165,6 @@ uint32_t  gallery_add_photo(int peer_socket, char *file_name){
     exit(0);
   }
 
-
   //Sending Picture as byte array
   char send_buffer[p.size];
   size_t fr;
@@ -184,6 +179,7 @@ uint32_t  gallery_add_photo(int peer_socket, char *file_name){
     }
     bzero(send_buffer, sizeof(send_buffer));
   }
+  fclose(picture);
   //Reciving photo ID from the Peer
   nbytes = recv(peer_socket, buff, sizeof(p), 0);
   if(nbytes==-1){
@@ -289,3 +285,40 @@ int gallery_delete_photo(int peer_socket, uint32_t id_photo){
 
   return re;
 }
+
+int gallery_get_photo(int peer_socket, uint32_t id_photo, char *file_name){
+  pic_info get_photo;
+
+  get_photo.message_type = 7;
+  get_photo.size = id_photo;
+
+  //Sending info of the message type, and the id of the desired Photo
+  char *buff = (char *) malloc(sizeof(get_photo));
+  memcpy(buff, &get_photo, sizeof(get_photo));
+  int nbytes = send(peer_socket, buff, sizeof(get_photo), 0);
+  if(nbytes == -1){
+    perror("Sending:");
+    return -1;
+  }
+  //Reciving picture size
+  long pic_size;
+  nbytes = recv(peer_socket, &pic_size, sizeof(pic_size), 0);
+  if(nbytes == -1){
+    perror("Reciving");
+    return -1;
+  }
+  if(pic_size <= 0){
+    return pic_size;
+  }else{
+    //Reciving byte array
+    FILE *picture;
+    char p_array[pic_size];
+    read(peer_socket, p_array, pic_size);
+
+    //Reconstructing byte array
+    picture = fopen(file_name, "w");
+    fwrite(p_array, 1, sizeof(p_array), picture);
+    fclose(picture);
+    return 1;
+  }
+}//END OF GET PHOTO
