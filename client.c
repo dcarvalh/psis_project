@@ -54,6 +54,7 @@ int main (){
   printf("\td - Delete photo\n");
   printf("\tk - Add a keyword to the picture \n");
   printf("\ts - Search for photos by keyword\n");
+  printf("\tg - Download a photo\n");
   printf("\tq - Exit program \n");
   printf("Command: ");
 
@@ -140,7 +141,7 @@ int main (){
       if((k=gallery_search_photo(peer_socket, k_word, &id_photo)) != 0 ){
         printf("Photos with '%s' as keyword:\n",k_word);
         for(int i=0; i<k; i++){
-          printf("\t");  
+          printf("\t");
           printf("%"PRIu32"\n", id_photo[i]);
         }
         printf("Number of photos: %d\n\n", k);
@@ -149,6 +150,31 @@ int main (){
               printf("Problem making the connection\n");
             }
       break;
+    }
+    case 'g':
+    {
+      //Getting necessary information for th function
+      printf("Insert the ID of the file you want to download: ");
+      fgets(input, MESSAGE_LEN, stdin);
+      sscanf(input,"%d",&key_id);
+      printf("Insert the name you want to give the photo: ");
+      fgets(input, MESSAGE_LEN, stdin);
+      k_word = malloc(sizeof(input)*sizeof(char));
+      sscanf(input, "%s", k_word);
+      //Getting photo
+      int pic = gallery_get_photo(peer_socket, key_id, k_word);
+      if(pic == 0){
+        printf("There is no photo with the inserted ID\n\n");
+        break;
+      }
+      if(pic == -1){
+        printf("There was an error while trying to download the picture\n\n");
+        break;
+      }else{
+        printf("Download successful :D\nIt's a boy!\n\n");
+        return 1;
+        break;
+      }
     }
     //Default input hadeling
     default:
@@ -160,6 +186,7 @@ int main (){
     printf("\td - Delete photo\n");
     printf("\tk - Add a keyword to the picture \n");
     printf("\ts - Search for photos by keyword\n");
+    printf("\tg - Download a photo\n");
     printf("\tq - Exit program \n");
     printf("Command: ");
 

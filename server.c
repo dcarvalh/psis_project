@@ -236,7 +236,7 @@ void *cli_com(void *new_cli_sock){
         break;
       }
       ////////////////////END ADD KEYWORD
-        
+
       //// SEARCH PHOTO protocol
       case 4:
       {
@@ -258,7 +258,7 @@ void *cli_com(void *new_cli_sock){
           exit(-1);
         }
         break;
-      } 
+      }
 
       /////////////Delete photo protocol//////////////////
       case 5:
@@ -286,13 +286,68 @@ void *cli_com(void *new_cli_sock){
         break;
       }
       ////////////////////END DELETE PHOTO
+      /////////////////////////////////////GET PHOTO PROTOCOL
+      case 7:
+      {
+        photolist *photo;
+        //Verifying if the requested picture exisits
+        if((photo = GetPhoto(head, pi.size))!=NULL){
+          FILE *picture;
+          long pic_size;
+          //Reading stored picture
+          char name[15];
+          sprintf(name, "%"PRIu32, pi.size);
+          picture=fopen(name, "rb");
+          if(picture == NULL){
+            perror("Filename");
+            pic_size = -1;
+          }
+          //Searching the beggining and end of the picture
+          fseek(picture, 0, SEEK_END);
+          pic_size = ftell(picture);
+          rewind(picture);
+          //Sending picture size to client_addr
+          int nbytes = sendto(fd, &pic_size, sizeof(pic_size), 0,
+                          (struct sockaddr *) &client_addr, size_addr);
+          if(nbytes == -1){
+            perror("Sending");
+            exit(-1);
+          }
+          //Sending Picture as byte array
+          char send_buffer[pic_size];
+          size_t fr;
+          while(!feof(picture)){  //Reading file, while it is not the end of file
+            fr=fread(send_buffer ,sizeof(char), sizeof(send_buffer), picture);
+            if(fr>0){
+              nbytes = sendto(fd, send_buffer, sizeof(send_buffer), 0,
+                              (struct sockaddr *) &client_addr, size_addr);
+              if(nbytes == -1){
+                perror("Sending:");
+                exit(0);
+              }
+            }
+            bzero(send_buffer, sizeof(send_buffer));
+          }
+          fclose(picture);
+        }else{
+          //Returning to client that there is no photo with the requested ID
+          int pic_size = 0;
+          int nbytes = sendto(fd, &pic_size, sizeof(pic_size), 0,
+                          (struct sockaddr *) &client_addr, size_addr);
+          if(nbytes == -1){
+            perror("Sending");
+            exit(-1);
+          }
+        }
+      }
+      /////////////////////////////END OF GET PHOTO PROOCOL
       default:
       {
           printf("Invalid Message Type recived\n");
           sleep(5);
       }
     }
-     
+
   }
 }//END OF CLIENT THREAD
 
