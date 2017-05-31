@@ -15,6 +15,9 @@
 #define TIMEOUT_INTERVAL 5
 
 
+fd_set          input_set;
+struct timeval  timeout;
+
 int gallery_connect(char * host, in_port_t port){
 
   struct sockaddr_in local_addr;
@@ -31,7 +34,7 @@ int gallery_connect(char * host, in_port_t port){
   sock_fd_gateway =socket(AF_INET, SOCK_DGRAM,0);
   if(sock_fd_gateway==-1){
     perror("Socket:");
-    exit(-1);
+    return -1;
   }
 
   //Locla address initialization
@@ -47,7 +50,7 @@ int gallery_connect(char * host, in_port_t port){
   int err = bind(sock_fd_gateway,(struct sockaddr *)&local_addr, sizeof(local_addr));
   if (err==-1){
     perror("Binding:");
-    exit(-1);
+    return -1;
   }
 
   printf("Datagram socket created and binded\n");
@@ -65,18 +68,13 @@ int gallery_connect(char * host, in_port_t port){
                 	  (struct sockaddr *) &gateway_addr,size_addr);
   if(nbytes == -1){
     perror("Sending");
-    exit(-1);
+    return -1;
   }
   ////////////////////TIMEOUT
-
-  fd_set          input_set;
-  struct timeval  timeout;
-
   /* Empty the FD Set */
   FD_ZERO(&input_set );
   /* Listen to the input descriptor */
   FD_SET(sock_fd_gateway, &input_set);
-
   /* Waiting for some seconds */
   timeout.tv_sec = TIMEOUT_INTERVAL;    // WAIT seconds
   timeout.tv_usec = 0;    // 0 milliseconds
@@ -86,23 +84,20 @@ int gallery_connect(char * host, in_port_t port){
     nbytes = recv(sock_fd_gateway, buff ,sizeof(m), 0);
     if(nbytes == -1){
       perror("Reciving");
-      exit(-1);
+      return -1;
     }
 
     memcpy(&m, buff, sizeof(m));
     free(buff);
-    if (m.message_type==0){
+    /*if (m.message_type==0){
       printf("Peer recived:\n");
       printf("%s \n", m.addr);
       printf("%d \n\n", m.port);
-    }if(m.message_type==-1){
-      printf("No peers available :(\n");
-      close(sock_fd_gateway);
+    }*/if(m.message_type==-1){
       return 0;
     }
 
   }else{
-    printf("Timeout has passed. Gateway is not reachable.\n");
     close(sock_fd_gateway);
     return -1;
   }
@@ -117,16 +112,14 @@ int gallery_connect(char * host, in_port_t port){
 
   int sock_fd_server= socket(AF_INET, SOCK_STREAM, 0);
   if(sock_fd_server == -1){
-    perror("error creating socket \n");
+    perror("Socket\n");
   	exit(-1);
   }
 
   if(connect(sock_fd_server, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1){
-    printf("Error connecting\n");
-    exit(-1);
+    perror("Connecting");
+    return -1;
   }
-
-  printf("TCP socket created and successfully connected\n");
 
   return sock_fd_server;
 }
@@ -162,7 +155,7 @@ uint32_t  gallery_add_photo(int peer_socket, char *file_name){
   int nbytes = send(peer_socket, buff, sizeof(p), 0);
   if(nbytes == -1){
     perror("Sending:");
-    exit(0);
+    return 0;
   }
 
   //Sending Picture as byte array
@@ -174,22 +167,34 @@ uint32_t  gallery_add_photo(int peer_socket, char *file_name){
       nbytes = send(peer_socket, send_buffer, sizeof(send_buffer), 0);
       if(nbytes == -1){
         perror("Sending:");
-        exit(0);
+        return 0;
       }
     }
     bzero(send_buffer, sizeof(send_buffer));
   }
   fclose(picture);
+
+////////////////////TIMEOUT
+/* Empty the FD Set */
+FD_ZERO(&input_set );
+/* Listen to the input descriptor */
+FD_SET(peer_socket, &input_set);
+/* Waiting for some seconds */
+timeout.tv_sec = TIMEOUT_INTERVAL;    // WAIT seconds
+timeout.tv_usec = 0;    // 0 milliseconds
   //Reciving photo ID from the Peer
+if(select(peer_socket+1, &input_set, NULL, NULL, &timeout) > 0){
   nbytes = recv(peer_socket, buff, sizeof(p), 0);
   if(nbytes==-1){
     perror("Reciving:");
-    exit(0);
+    return 0;
   }
   memcpy(&foto_id, buff, sizeof(uint32_t));
 
   return foto_id;
-
+}else{
+  return 0;
+}
 }//End of Add Photo
 
 int gallery_add_keyword (int peer_socket, uint32_t id_photo, char *keyword){
@@ -205,20 +210,24 @@ int gallery_add_keyword (int peer_socket, uint32_t id_photo, char *keyword){
   memcpy(buff, &k_word, sizeof(k_word));
   int nbytes = send(peer_socket, buff, sizeof(k_word), 0);
   if(nbytes == -1){
-    perror("Sending:");
-    exit(0);
+    perror("Sending");
+    return -1;
   }
 
   buff =  (char*)malloc(sizeof (k_word));
-  nbytes = recv(peer_socket, buff ,sizeof (k_word), 0);
-  if(nbytes==-1){
-    perror("Reciving");
-    sleep(5);
+  if(select(peer_socket+1, &input_set, NULL, NULL, &timeout) > 0){
+    nbytes = recv(peer_socket, buff ,sizeof (k_word), 0);
+    if(nbytes==-1){
+      perror("Reciving");
+      return -1;
+    }
+    memcpy(&k_word, buff, sizeof(k_word));
+    int re = k_word.message_type;
+    free(buff);
+    return re;
+  }else{
+    return -1;
   }
-  memcpy(&k_word, buff, sizeof(k_word));
-  int re = k_word.message_type;
-  free(buff);
-  return re;
 }////////////// END OF ADD KEYWORD
 
 int gallery_search_photo(int peer_socket, char *keyword, uint32_t **id_photos){
@@ -234,7 +243,7 @@ int gallery_search_photo(int peer_socket, char *keyword, uint32_t **id_photos){
   int nbytes = send(peer_socket, buff, sizeof(p_search), 0);
   if(nbytes == -1){
     perror("Sending");
-    exit(0);
+    return -1;
   }
   free(buff);
 
@@ -247,16 +256,16 @@ int gallery_search_photo(int peer_socket, char *keyword, uint32_t **id_photos){
   }
 
   if(n_photos != -1 && n_photos != 0){
-    //Getting array stream of bytes///////////////////////////////////////////////////////
+    //Getting array stream of bytes
     (*id_photos) = malloc(n_photos*sizeof(uint32_t));
     nbytes = recv(peer_socket, (*id_photos), n_photos*sizeof(uint32_t),0);
-    /////////////////////////////////////////////////
-    if (n_photos == 50)
-      printf("Peer can only return 50 photos maximum\n");
+
     return n_photos;
-  }else{
-    return -1;
   }
+  if(n_photos == 0)
+    return 0;
+  else
+    return -1;
 }// END OF SEARCH PHOTO
 
 int gallery_delete_photo(int peer_socket, uint32_t id_photo){
@@ -266,13 +275,13 @@ int gallery_delete_photo(int peer_socket, uint32_t id_photo){
   p.message_type = 5;
   p.size = id_photo;
 
-  //Sending ID
+  //Sending keyword
   buff =(char *) malloc(sizeof (p));
   memcpy(buff, &p, sizeof(p));
   int nbytes = send(peer_socket, buff, sizeof(p), 0);
   if(nbytes == -1){
     perror("Sending:");
-    exit(0);
+    return -1;
   }
 
   int re;
@@ -280,39 +289,7 @@ int gallery_delete_photo(int peer_socket, uint32_t id_photo){
   nbytes = recv(peer_socket, &re, sizeof(re), 0);
   if(nbytes==-1){
     perror("Reciving:");
-    exit(0);
-  }
-
-  return re;
-}
-
-int gallery_get_photo_name(int peer_socket, uint32_t id_photo, char **photo_name){
-  pic_info p;
-  char *buff;
-
-  p.message_type = 6;
-  p.size = id_photo;
-
-  //Sending ID
-  buff =(char *) malloc(sizeof (p));
-  memcpy(buff, &p, sizeof(p));
-  int nbytes = send(peer_socket, buff, sizeof(p), 0);
-  if(nbytes == -1){
-    perror("Sending:");
-    exit(0);
-  }
-
-  nbytes = recv(peer_socket, buff ,sizeof (p), 0);
-  if(nbytes==-1){
-    perror("Reciving");
-    sleep(5);
-  }
-  memcpy(&p, buff, sizeof(p));
-  int re = p.message_type;
-  free(buff);
-
-  if(re==1){
-    strcpy((*photo_name),p.pic_name);
+    return -1;
   }
 
   return re;
@@ -353,4 +330,36 @@ int gallery_get_photo(int peer_socket, uint32_t id_photo, char *file_name){
     fclose(picture);
     return 1;
   }
+}//END OF GET PHOTO
+
+int gallery_get_photo_name(int peer_socket, uint32_t id_photo, char **photo_name){
+  pic_info p;
+  char *buff;
+
+  p.message_type = 6;
+  p.size = id_photo;
+
+  //Sending ID
+  buff =(char *) malloc(sizeof (p));
+  memcpy(buff, &p, sizeof(p));
+  int nbytes = send(peer_socket, buff, sizeof(p), 0);
+  if(nbytes == -1){
+    perror("Sending:");
+    exit(0);
+  }
+
+  nbytes = recv(peer_socket, buff ,sizeof (p), 0);
+  if(nbytes==-1){
+    perror("Reciving");
+    sleep(5);
+  }
+  memcpy(&p, buff, sizeof(p));
+  int re = p.message_type;
+  free(buff);
+
+  if(re==1){
+    strcpy((*photo_name),p.pic_name);
+  }
+
+  return re;
 }

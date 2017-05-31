@@ -158,9 +158,11 @@ void *cli_com(void *new_cli_sock){
 
   while(1){
 
+    pic_id = 0;
     //Reciving message from client
     pi.size=0; //inicializar o ID
     buff =  (char*)malloc(sizeof (pi));
+    bzero(buff, sizeof(pi));
     int nbytes = recv(fd, buff ,sizeof (pi), 0);
     if(nbytes==-1){
       perror("Reciving");
