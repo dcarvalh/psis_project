@@ -1,6 +1,5 @@
 #include "message.h"
 #include "img_list.h"
-
 #include <ctype.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -13,44 +12,47 @@
 #include <string.h>
 #include <pthread.h>
 #include <time.h>
-
 #define MAX_WAIT_LIST 5
 
-/*Used sockets in th server must be declared as global variables to be closed in
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////// GLOBAL VARIABLES ////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+/*Used sockets in the server must be declared as global variables to be closed in
   the sigaction function*/
+int new_cli_sock;        //fd for new clients
+int sock_TCP;            //fd for accepting new clients
+int sock_gateway_fd;     //fd for communicating with gateway
 
-int new_cli_sock;
-int sock_TCP;
-int sock_gateway_fd;
+struct sockaddr_in gateway_addr; //for communicating with gateway
+message m;                       //struct for communicating with gateway
 
-struct sockaddr_in gateway_addr;
-char *buff;
-message m;
-struct sockaddr_in client_addr;
+int client_count = 0;   //number of active clients
+struct sigaction *act;  //sigaction handler
 
-int client_count=0;
-struct sigaction *act;
+photolist *head;  //Picture list head
 
-//Picture list variables
-photolist *head;
-
+////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////// HEADERS //////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 void *cli_com(void  *new_cli_sock);
 static void handle(int sig, siginfo_t *siginfo,void *context);
 
-
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////// MAIN ////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 int main (){
   //Structures that will save the information of the several
+
+  struct sockaddr_in client_addr;
+
   struct sockaddr_in local_addr;
   socklen_t addrlen;
   int nbytes;
-
 
   //Threads that will comunicate with the client
   pthread_t thread_c;
   int iret_c;
   int *t_args;
-
-
 
 ////Sigaction Initialization
   act = malloc(sizeof(act));
@@ -91,6 +93,7 @@ int main (){
   printf("%d \n\n", m.port);
 
 //copying the memory of the structure to the mem location of a buffer
+  char *buff;
   buff =(char *) malloc(sizeof (m));
   memcpy(buff, &m, sizeof(m));
 
@@ -100,7 +103,7 @@ int main (){
 
   printf("bytes sent: %d \n", nbytes);
 
-  /////////////////Client handeling portion//////////////////////
+  /////////////////Client handeling portion
 
   //Binding and creating TCP socket
 
@@ -146,12 +149,14 @@ int main (){
 
 }//END OF MAIN
 
+////////////////////////////////////////////////////////////////////////////////
+///////////////////////////// CLIENT THREAD ////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 void *cli_com(void *new_cli_sock){
 
   //Socket communication variables
   int fd = *(int*)new_cli_sock;
   char *buff;
-  socklen_t  size_addr = sizeof(client_addr);
   //Picture variables
   pic_info pi;
   uint32_t pic_id;
@@ -203,8 +208,8 @@ void *cli_com(void *new_cli_sock){
         image = fopen( server_img, "w");
         fwrite(p_array, 1, sizeof(p_array), image);
         fclose(image);
-        nbytes = sendto(fd, &pic_id, sizeof(pic_id), 0,
-                        (struct sockaddr *) &client_addr, size_addr);
+        nbytes = send(fd, &pic_id, sizeof(pic_id), 0);
+
         if(nbytes == -1){
           perror("Sending");
           exit(-1);
@@ -229,8 +234,7 @@ void *cli_com(void *new_cli_sock){
         }else{
           k = -1;
         }
-        nbytes = sendto(fd, &k, sizeof(k), 0,
-                        (struct sockaddr *) &client_addr, size_addr);
+        nbytes = send(fd, &k, sizeof(k), 0);
         if(nbytes == -1){
           perror("Sending");
           exit(-1);
@@ -248,13 +252,11 @@ void *cli_com(void *new_cli_sock){
 
         printf("Nº Photos: %d\n", n);
         //Sending amount of photos found
-        nbytes = sendto(fd, &n, sizeof(n), 0,
-                        (struct sockaddr *) &client_addr, size_addr);
+        nbytes = send(fd, &n, sizeof(n), 0);
         for(int i=0; photos[i] != 0; i++)
           printf("%" PRIu32 "\n", photos[i]);
         //Sending array as a byte stream
-        nbytes = sendto(fd, &photos, n*sizeof(uint32_t), 0,
-                        (struct sockaddr *) &client_addr, size_addr);
+        nbytes = send(fd, &photos, n*sizeof(uint32_t), 0);
         if(nbytes == -1){
           perror("Sending");
           exit(-1);
@@ -279,8 +281,7 @@ void *cli_com(void *new_cli_sock){
           k = 0;
         }
 
-        nbytes = sendto(fd, &k, sizeof(k), 0,
-                        (struct sockaddr *) &client_addr, size_addr);
+        nbytes = send(fd, &k, sizeof(k), 0);
         if(nbytes == -1){
           perror("Sending");
           exit(-1);
@@ -304,8 +305,7 @@ void *cli_com(void *new_cli_sock){
         buff =(char *) malloc(sizeof (p));
         memcpy(buff, &p, sizeof(p));
 
-        nbytes = sendto(fd, buff, sizeof(p), 0,
-                        (struct sockaddr *) &client_addr, size_addr);
+        nbytes = send(fd, buff, sizeof(p), 0);
         if(nbytes == -1){
           perror("Sending");
           exit(-1);
@@ -334,8 +334,7 @@ void *cli_com(void *new_cli_sock){
           pic_size = ftell(picture);
           rewind(picture);
           //Sending picture size to client_addr
-          int nbytes = sendto(fd, &pic_size, sizeof(pic_size), 0,
-                          (struct sockaddr *) &client_addr, size_addr);
+          int nbytes = send(fd, &pic_size, sizeof(pic_size), 0);
           if(nbytes == -1){
             perror("Sending");
             exit(-1);
@@ -346,8 +345,7 @@ void *cli_com(void *new_cli_sock){
           while(!feof(picture)){  //Reading file, while it is not the end of file
             fr=fread(send_buffer ,sizeof(char), sizeof(send_buffer), picture);
             if(fr>0){
-              nbytes = sendto(fd, send_buffer, sizeof(send_buffer), 0,
-                              (struct sockaddr *) &client_addr, size_addr);
+              nbytes = send(fd, send_buffer, sizeof(send_buffer), 0);
               if(nbytes == -1){
                 perror("Sending:");
                 exit(0);
@@ -359,8 +357,7 @@ void *cli_com(void *new_cli_sock){
         }else{
           //Returning to client that there is no photo with the requested ID
           int pic_size = 0;
-          int nbytes = sendto(fd, &pic_size, sizeof(pic_size), 0,
-                          (struct sockaddr *) &client_addr, size_addr);
+          int nbytes = send(fd, &pic_size, sizeof(pic_size), 0);
           if(nbytes == -1){
             perror("Sending");
             exit(-1);
@@ -378,16 +375,18 @@ void *cli_com(void *new_cli_sock){
   }
 }//END OF CLIENT THREAD
 
+////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////// HANDLER ///////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 static void handle(int sig, siginfo_t *siginfo,void *context){
 
-  m.message_type = -1;//message of the type -1 tells the gateway the server is disconnecting
-
   PrintPhotoList(head);
-
+  char * buff;
   buff =(char *) malloc(sizeof (m));
   memcpy(buff, &m, sizeof(m));
 
 //Sending disconect message to gateway_addr
+  m.message_type = -1;//message of the type -1 tells the gateway the server is disconnecting
   sendto(sock_gateway_fd, buff, sizeof(m), 0,
                 	  (const struct sockaddr *) &gateway_addr,sizeof(gateway_addr));
   close(new_cli_sock);
