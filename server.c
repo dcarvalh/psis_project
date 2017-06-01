@@ -83,7 +83,7 @@ int main (){
   local_addr.sin_port = htons(3000+getpid());
   local_addr.sin_addr.s_addr=INADDR_ANY;
 
-  //Incialização da gatewa address
+  //Incialização gateway address
   gateway_addr.sin_family = AF_INET;
   gateway_addr.sin_port = htons(3002);
   gateway_addr.sin_addr.s_addr=inet_addr("127.0.0.1");
@@ -433,10 +433,9 @@ static void handle(int sig, siginfo_t *siginfo,void *context){
   PrintPhotoList(head);
   char * buff;
   buff =(char *) malloc(sizeof (m));
-  memcpy(buff, &m, sizeof(m));
-
   //Sending disconect message to gateway_addr
   m.message_type = -1;//message of the type -1 tells the gateway the server is disconnecting
+  memcpy(buff, &m, sizeof(m));
   sendto(sock_gateway_fd, buff, sizeof(m), 0,
                 	  (const struct sockaddr *) &gateway_addr,sizeof(gateway_addr));
   close(new_cli_sock);

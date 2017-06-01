@@ -20,7 +20,6 @@ struct timeval  timeout;
 
 int gallery_connect(char * host, in_port_t port){
 
-  struct sockaddr_in local_addr;
   struct sockaddr_in gateway_addr;
   //struct sockaddr_in peer_addr;
   socklen_t size_addr;
@@ -33,27 +32,14 @@ int gallery_connect(char * host, in_port_t port){
   //Socket that comunicates with Gateway
   sock_fd_gateway =socket(AF_INET, SOCK_DGRAM,0);
   if(sock_fd_gateway==-1){
-    perror("Socket:");
+    perror("Socket");
     return -1;
   }
-
-  //Locla address initialization
-  local_addr.sin_family = AF_INET;
-  local_addr.sin_port = htons(3009+getpid());
-  local_addr.sin_addr.s_addr=INADDR_ANY;
 
   //Incialização da local address
   gateway_addr.sin_family = AF_INET;
   gateway_addr.sin_port = port;
   gateway_addr.sin_addr.s_addr=inet_addr(host);
-
-  int err = bind(sock_fd_gateway,(struct sockaddr *)&local_addr, sizeof(local_addr));
-  if (err==-1){
-    perror("Binding:");
-    return -1;
-  }
-
-  printf("Datagram socket created and binded\n");
 
   size_addr = sizeof(gateway_addr);
 
@@ -112,7 +98,7 @@ int gallery_connect(char * host, in_port_t port){
 
   int sock_fd_server= socket(AF_INET, SOCK_STREAM, 0);
   if(sock_fd_server == -1){
-    perror("Socket\n");
+    perror("Socket");
   	exit(-1);
   }
 
@@ -154,7 +140,7 @@ uint32_t  gallery_add_photo(int peer_socket, char *file_name){
 
   int nbytes = send(peer_socket, buff, sizeof(p), 0);
   if(nbytes == -1){
-    perror("Sending:");
+    perror("Sending");
     return 0;
   }
 
@@ -166,7 +152,7 @@ uint32_t  gallery_add_photo(int peer_socket, char *file_name){
     if(fr>0){
       nbytes = send(peer_socket, send_buffer, sizeof(send_buffer), 0);
       if(nbytes == -1){
-        perror("Sending:");
+        perror("Sending");
         return 0;
       }
     }
@@ -186,7 +172,7 @@ timeout.tv_usec = 0;    // 0 milliseconds
 if(select(peer_socket+1, &input_set, NULL, NULL, &timeout) > 0){
   nbytes = recv(peer_socket, buff, sizeof(p), 0);
   if(nbytes==-1){
-    perror("Reciving:");
+    perror("Reciving");
     return 0;
   }
   memcpy(&foto_id, buff, sizeof(uint32_t));
@@ -214,6 +200,13 @@ int gallery_add_keyword (int peer_socket, uint32_t id_photo, char *keyword){
     return -1;
   }
 
+  /* Empty the FD Set */
+  FD_ZERO(&input_set );
+  /* Listen to the input descriptor */
+  FD_SET(peer_socket, &input_set);
+  /* Waiting for some seconds */
+  timeout.tv_sec = TIMEOUT_INTERVAL;    // WAIT seconds
+  timeout.tv_usec = 0;    // 0 milliseconds
   buff =  (char*)malloc(sizeof (k_word));
   if(select(peer_socket+1, &input_set, NULL, NULL, &timeout) > 0){
     nbytes = recv(peer_socket, buff ,sizeof (k_word), 0);
@@ -280,7 +273,7 @@ int gallery_delete_photo(int peer_socket, uint32_t id_photo){
   memcpy(buff, &p, sizeof(p));
   int nbytes = send(peer_socket, buff, sizeof(p), 0);
   if(nbytes == -1){
-    perror("Sending:");
+    perror("Sending");
     return -1;
   }
 
@@ -288,7 +281,7 @@ int gallery_delete_photo(int peer_socket, uint32_t id_photo){
   //Reciving Server response
   nbytes = recv(peer_socket, &re, sizeof(re), 0);
   if(nbytes==-1){
-    perror("Reciving:");
+    perror("Reciving");
     return -1;
   }
 
@@ -301,12 +294,17 @@ int gallery_get_photo(int peer_socket, uint32_t id_photo, char *file_name){
   get_photo.message_type = 7;
   get_photo.size = id_photo;
 
+  printf("******************DEBUG1****************\n");
   //Sending info of the message type, and the id of the desired Photo
   char *buff = (char *) malloc(sizeof(get_photo));
+
+  printf("******************DEBUG2****************\n");
   memcpy(buff, &get_photo, sizeof(get_photo));
+
+  printf("******************DEBUG3****************\n");
   int nbytes = send(peer_socket, buff, sizeof(get_photo), 0);
   if(nbytes == -1){
-    perror("Sending:");
+    perror("Sending");
     return -1;
   }
   //Reciving picture size
@@ -344,7 +342,7 @@ int gallery_get_photo_name(int peer_socket, uint32_t id_photo, char **photo_name
   memcpy(buff, &p, sizeof(p));
   int nbytes = send(peer_socket, buff, sizeof(p), 0);
   if(nbytes == -1){
-    perror("Sending:");
+    perror("Sending");
     exit(0);
   }
 
