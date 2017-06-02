@@ -1,5 +1,6 @@
 #define MESSAGE_LEN 20
 #include <stdint.h>
+#define BICHO printf("Bichooooooooooooooooooooooooooooooo!\n");
 typedef struct message{
   char addr[MESSAGE_LEN];
   int message_type;
@@ -7,6 +8,7 @@ typedef struct message{
 }message;
 
 /*Message Type:
+*  19- New peer connected
 *  5 - Client removes picture from server
 *  3 - Client adding keyword
 *  2 - Client Seding picture
@@ -14,6 +16,7 @@ typedef struct message{
 *  0 - Exists a peer for client / Client asks the gateway for peer information
 * -1 - Server Disconnecting
 * -99 - Client Disconnected from server
+* -19 - Peer left
 */
 
 typedef struct picture_info{

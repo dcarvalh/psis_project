@@ -1,5 +1,6 @@
 #include "message.h"
 #include "img_list.h"
+#include "list.h"
 
 #include <ctype.h>
 #include <sys/socket.h>
@@ -18,6 +19,8 @@
 
 /*Used sockets in th server must be declared as global variables to be closed in
   the sigaction function*/
+int npeers=0;
+peerlist *genlist;  //Vector that will keeps the existing peers
 
 int new_cli_sock;
 int sock_TCP;
@@ -27,6 +30,7 @@ struct sockaddr_in gateway_addr;
 char *buff;
 message m;
 struct sockaddr_in client_addr;
+struct sockaddr_in server_addr;
 
 int client_count=0;
 struct sigaction *act;
@@ -34,13 +38,15 @@ struct sigaction *act;
 //Picture list variables
 photolist *head;
 
+peerlist *peer_head; //Head to the list of all other peers
 void *cli_com(void  *new_cli_sock);
 static void handle(int sig, siginfo_t *siginfo,void *context);
-
+void Broadcast(int messagetype, peerlist *peerlist, int npeers);
 
 int main (){
   //Structures that will save the information of the several
   struct sockaddr_in local_addr;
+
   socklen_t addrlen;
   int nbytes;
 
@@ -100,8 +106,106 @@ int main (){
 
   printf("bytes sent: %d \n", nbytes);
 
+  //////////////////////////////////Replication///////////////////////////////////////////////////////
+  //Recive number of current existing peers
+
+  nbytes=recv(sock_gateway_fd, &npeers, sizeof(npeers),0);
+  if(nbytes == -1){
+    perror("Reciving");
+    exit(-1);
+  }
+  peer_head = InitList();
+
+  peerlist list[npeers];
+  genlist = list;
+  if(npeers != 0){
+    buff = (char *) malloc(sizeof(peerlist)*npeers);
+    nbytes = recv(sock_gateway_fd, buff, sizeof(peerlist)*npeers,0);
+    if(nbytes == -1){
+      perror("Reciving");
+      exit(-1);
+    }
+    memcpy(list, buff, sizeof(peerlist)*npeers);
+    //Broadcasting new peer existence
+    Broadcast(19, genlist, npeers);
+
+    //Initializing photo list
+    head = InitPhotoList();
+    /*// Getting photos and keywords from a peer
+    pic_info broad;
+    broad.message_type = 2000; //Message type for a new server
+    server_addr.sin_family = AF_INET;
+    int sock_fd_server= socket(AF_INET, SOCK_STREAM, 0);
+    if(sock_fd_server == -1){
+      perror("Socket\n");
+      exit(-1);
+    }
+    server_addr.sin_port= htons(GivePort(peer_head));
+    inet_aton(GiveIP(peer_head), &server_addr.sin_addr);
+    //Connecting to peer to get photos
+    if(connect(sock_fd_server, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1){
+      perror("Connecting");
+      exit(-1);
+    }
+    buff = (char *) malloc(sizeof(pic_info));
+    memcpy(buff, &broad, sizeof(pic_info));
+    nbytes = send(sock_fd_server, buff, sizeof(broad), 0);
+    if(nbytes==-1){
+      perror("Sending");
+    }
+    //Revice size of photo list
+    int photosize=0;
+    nbytes = recv(sock_fd_server, &photosize, sizeof(photosize), 0);
+    if(nbytes == -1){
+      perror("Reciving");
+      exit(-1);
+    }
+    printf("PhotoSize: %d\n", photosize);
+    //Receber lista de photos
+    photolist *photovector = (photolist *)malloc(sizeof(photolist)*photosize);
+    buff = (char *) malloc(sizeof(photolist)*photosize);
+    nbytes = recv(sock_fd_server, buff, sizeof(photolist)*photosize, 0);
+    if(nbytes == -1){
+      perror("Reciving");
+      exit(-1);
+    }
+
+    memcpy(photovector, buff, sizeof(photolist)*photosize);
+
+    photolist *aux;
+    aux = head;
+    for(int i=0; i<photosize; i++){
+      printf("Inserting photos\n");
+      head = NewPhoto(head, photovector[i].id_photo, photovector[i].file_name);
+    }
+    PrintPhotoList(head);
+    printf("Photos Inserted\n");
+    int keywordsize;
+    keyword *keywordvector;
+    for(aux = head; aux!=NULL; aux=aux->next){
+      keywordsize = 0;
+      nbytes = recv(sock_fd_server, &keywordsize, sizeof(keywordsize), 0);
+      if(nbytes == -1){
+        perror("Reciving");
+      }
+      keywordvector = malloc(sizeof(keyword)*keywordsize);
+      buff = (char *) malloc(sizeof(keyword)*keywordsize);
+      recv(sock_fd_server, buff, sizeof(keyword)*keywordsize, 0);
+      memcpy(keywordvector, buff, sizeof(keyword)*keywordsize);
+      for(int i=0; i<keywordsize; i++){
+        NewKeyWord(aux->key_head, keywordvector[i].keyword_name);
+      }
+    }
+
+    close(sock_fd_server);*/
+    }else{
+      printf("No other peers exist at the moment\n");
+      //Initializing photo list
+      head = InitPhotoList();
+    }
   /////////////////Client handeling portion//////////////////////
 
+  PrintPhotoList(head);
   //Binding and creating TCP socket
 
   sock_TCP = socket(AF_INET, SOCK_STREAM, 0);
@@ -121,9 +225,6 @@ int main (){
   }
 
   t_args = malloc(sizeof(new_cli_sock));
-
-  //Initializing Photo list
-  head = InitPhotoList();
 
   while(1){
     /*Listening for new clients connecting(in case more than one connects at the
@@ -366,12 +467,138 @@ void *cli_com(void *new_cli_sock){
             exit(-1);
           }
         }
+        break;
       }
       /////////////////////////////END OF GET PHOTO PROOCOL
+      //NEw peer connected protocol
+      case 19:
+      {
+        peer_head = NewPeer(peer_head, pi.pic_name, pi.size);
+        PrintList(peer_head);
+        client_count--;
+        pthread_exit (NULL);
+        break;
+      }
+      //Peer disconnected
+      case -19:
+      {
+        peer_head = RemovePeer(peer_head, pi.pic_name, pi.size);
+        client_count--;
+        PrintList(peer_head);
+        pthread_exit (NULL);
+      }
+
+      ///Enviar lista de fotos
+      case 2000:
+      {
+        photolist *aux;
+        int photocount = 0;
+
+        for(aux = head; aux != NULL; aux = aux->next){
+            photocount++;
+        }
+        int nbytes = send(fd, &photocount, sizeof(photocount), 0);
+        if(nbytes==-1){
+          perror("Sending");
+        }
+
+        //Filling photo list vector with the photo data
+        aux = head;
+        photolist p_list[photocount];
+        for(int i = 0; i<photocount; i++){
+          p_list[i].id_photo = aux->id_photo;
+          p_list[i].file_name = aux->file_name;
+          p_list[i].key_head = NULL;
+          aux = aux->next;
+        }
+
+        //Sending list of photos to the new peer
+        buff = malloc(sizeof(photolist)*photocount);
+        memcpy(buff, p_list, sizeof(photolist)*photocount);
+        printf("Merda: %s\n", buff);
+
+        nbytes = send(fd, buff, sizeof(photolist)*photocount, 0);
+        if(nbytes==-1){
+          perror("Sending");
+        }
+        BICHO;
+        //Filling keyword vector with photo keyword
+        keyword *k;
+        int keycount;
+        keyword *k_vector;
+        for(aux = head; aux != NULL; aux=aux->next){
+          keycount = 0;
+          for(k=aux->key_head; k!=NULL; k=k->next_key)
+            keycount++;
+          nbytes = send(fd, &keycount, sizeof(keycount), 0);
+          if(nbytes==-1){
+            perror("Sending");
+          }
+          k_vector = malloc(sizeof(keyword)*keycount);
+          k = aux->key_head;
+          for(int i=0; i<keycount; i++){
+            k_vector[i]=*k;
+            k = k->next_key;
+          }
+          //Sending photo keyword list to new peer
+          buff = (char *) malloc(sizeof(keyword)*keycount);
+          memcpy(buff, k_vector, sizeof(photolist)*photocount);
+
+          nbytes = send(fd, buff, sizeof(keyword)*keycount, 0);
+          if(nbytes==-1){
+            perror("Sending");
+          }
+        }
+
+        free(k_vector);
+
+        for(aux = head; aux!=NULL; aux= aux->next){
+
+          FILE *picture;
+          long pic_size;
+          //Reading stored picture
+          char name[15];
+          sprintf(name, "%"PRIu32, aux->id_photo);
+          picture=fopen(name, "rb");
+          if(picture == NULL){
+            perror("Filename");
+            pic_size = -1;
+          }
+          //Searching the beggining and end of the picture
+          fseek(picture, 0, SEEK_END);
+          pic_size = ftell(picture);
+          rewind(picture);
+          //Sending picture size to client_addr
+          nbytes = send(fd, &pic_size, sizeof(pic_size), 0);
+          if(nbytes == -1){
+            perror("Sending");
+            exit(-1);
+          }
+          //Sending Picture as byte array
+          char send_buffer[pic_size];
+          size_t fr;
+          while(!feof(picture)){  //Reading file, while it is not the end of file
+            fr=fread(send_buffer ,sizeof(char), sizeof(send_buffer), picture);
+            if(fr>0){
+              nbytes = send(fd, send_buffer, sizeof(send_buffer), 0);
+              if(nbytes == -1){
+                perror("Sending:");
+                exit(0);
+              }
+            }
+            bzero(send_buffer, sizeof(send_buffer));
+          }
+          fclose(picture);
+        }//END FOR
+        pthread_exit(NULL);
+        break;
+      }
+
       default:
       {
           printf("Invalid Message Type recived\n");
           sleep(5);
+          break;
       }
     }
 
@@ -386,10 +613,12 @@ static void handle(int sig, siginfo_t *siginfo,void *context){
 
   buff =(char *) malloc(sizeof (m));
   memcpy(buff, &m, sizeof(m));
-
 //Sending disconect message to gateway_addr
   sendto(sock_gateway_fd, buff, sizeof(m), 0,
                 	  (const struct sockaddr *) &gateway_addr,sizeof(gateway_addr));
+
+  Broadcast(-19, genlist, npeers);
+
   close(new_cli_sock);
   close(sock_TCP);
   close(sock_gateway_fd);
@@ -398,4 +627,36 @@ static void handle(int sig, siginfo_t *siginfo,void *context){
   free(buff);
   free(act);
   exit(0);
+}
+
+void Broadcast(int messagetype, peerlist *peerlist, int npeers){
+  pic_info broad;
+  broad.message_type = messagetype; //Message type for a new server
+  strcpy(broad.pic_name, m.addr);
+  broad.size = m.port;
+  server_addr.sin_family = AF_INET;
+
+  //Placing Peers in list and sending them new peer connection message
+  for(int i=0; i<npeers; i++){
+      int sock_fd_server= socket(AF_INET, SOCK_STREAM, 0);
+      if(sock_fd_server == -1){
+        perror("Socket\n");
+        exit(-1);
+      }
+      peer_head = NewPeer(peer_head,genlist[i].ip,genlist[i].port);
+      server_addr.sin_port= htons(GivePort(peer_head));
+      inet_aton(GiveIP(peer_head), &server_addr.sin_addr);
+      //Connecting to peer to anounce new peer existence
+      if(connect(sock_fd_server, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1){
+        perror("Connecting");
+        exit(-1);
+      }
+      buff = (char *) malloc(sizeof(pic_info));
+      memcpy(buff, &broad, sizeof(pic_info));
+      int nbytes = send(sock_fd_server, buff, sizeof(broad), 0);
+      if(nbytes==-1){
+        perror("Sending");
+      }
+      close(sock_fd_server);
+  }
 }
