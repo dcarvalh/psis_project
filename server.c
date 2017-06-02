@@ -23,9 +23,6 @@
 int npeers=0;
 peerlist *genlist;  //Vector that will keeps the existing peers
 
-int npeers=0;
-peerlist *genlist;  //Vector that will keeps the existing peers
-
 int new_cli_sock;        //fd for new clients
 int sock_TCP;            //fd for accepting new clients
 int sock_gateway_fd;     //fd for communicating with gateway
@@ -69,8 +66,6 @@ int main (){
   struct sockaddr_in client_addr;
 
   struct sockaddr_in local_addr;
-
-  socklen_t addrlen;
 
   socklen_t addrlen;
 
@@ -211,7 +206,6 @@ int main (){
       printf("Photos Inserted\n");
       int keywordsize=0;
       keyword *keywordvector;
-      keyword *ke;
       BICHO;
       for(aux = head; aux!=NULL; aux=aux->next){
         nbytes = recv(sock_fd_server, &keywordsize, sizeof(keywordsize), 0);
@@ -230,9 +224,7 @@ int main (){
         printf("Keyword: %s\n",keywordvector[w].keyword_name);
         w++;
         for(int i=0; i<keywordsize; i++){
-          ke = GetKeyHead(aux);
-          ke = NewKeyWord(ke, keywordvector[i].keyword_name);
-          Adding(aux,ke);
+          NewKeyWord(aux, keywordvector[i].keyword_name);
         }
       }
 
@@ -375,7 +367,7 @@ void *cli_com(void *new_cli_sock){
         break;
       }
       case 7:
-      {        
+      {
         Get_picture(fd, pi);
         break;
       }
@@ -558,17 +550,11 @@ void Add_picture(int fd, pic_info pi){
 
 void Add_keyword(int fd, pic_info pi){
   uint32_t photos[50];
-  int i;
-  for(i=0; i<50; i++){
-    photos[i]=0;        Get_picture(fd, pi);
-        break;
-      }
-  }
   int k=0;
   photolist *aux = head;
   if((aux = GetPhoto(head, pi.size))!=NULL){
     SearchPhotosbyKeyWords(head, pi.pic_name, photos);
-    for(i=0; photos[i] != 0; i++){
+    for(int i=0; photos[i] != 0; i++){
       if(photos[i]==GetID(aux)){
         k = -1; //keyword already exists in that photo
       }
@@ -589,6 +575,13 @@ void Add_keyword(int fd, pic_info pi){
 
   return;
 }
+/*
+int i;
+for(i=0; i<50; i++){
+  photos[i]=0;        Get_picture(fd, pi);
+      break;
+    }
+}*/
 
 void Search_picture(int fd, pic_info pi){
   uint32_t photos[50];
@@ -746,6 +739,8 @@ static void handle(int sig, siginfo_t *siginfo,void *context){
 }
 
 void Broadcast(int messagetype, peerlist *peerlist, int npeers){
+
+  char * buff;
   pic_info broad;
   broad.message_type = messagetype; //Message type for a new server
   strcpy(broad.pic_name, m.addr);
