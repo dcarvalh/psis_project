@@ -102,7 +102,7 @@ int main (){
 
   printf("Datagram socket created and binded\n");
 
-//Filling uo the structure to sent the Gateway
+  //Filling uo the structure to sent the Gateway
   m.port=ntohs(local_addr.sin_port);
   m.message_type= 1;
   strcpy(m.addr, "127.0.0.1");
@@ -112,17 +112,17 @@ int main (){
   printf("%s \n", m.addr);
   printf("%d \n\n", m.port);
 
-//copying the memory of the structure to the mem location of a buffer
+  //copying the memory of the structure to the mem location of a buffer
   char *buff;
   buff =(char *) malloc(sizeof (m));
   memcpy(buff, &m, sizeof(m));
 
-//Sending conect message to gateway_addr
+  //Sending conect message to gateway_addr
   nbytes = sendto(sock_gateway_fd, buff, sizeof(m), 0,
                 	  (const struct sockaddr *) &gateway_addr,sizeof(gateway_addr));
 
   printf("bytes sent: %d \n", nbytes);
-
+/*
   //////////////////////////////////Replication///////////////////////////////////////////////////////
   //Recive number of current existing peers
 
@@ -135,6 +135,7 @@ int main (){
 
   peerlist list[npeers];
   genlist = list;
+
 
   printf("Npeers : %d\n", npeers);
   if(npeers != 0){
@@ -260,9 +261,11 @@ int main (){
       //Initializing photo list
       head = InitPhotoList();
     }
+*/
   /////////////////Client handeling portion//////////////////////
 
-  PrintPhotoList(head);
+  //PrintPhotoList(head);/**************************************************************************/
+
   //Binding and creating TCP socket
 
   sock_TCP = socket(AF_INET, SOCK_STREAM, 0);
@@ -466,7 +469,7 @@ void *cli_com(void *new_cli_sock){
         if(keycount != 0)
           free(k_vector);
 
-        pic_info info;
+//        pic_info info;    /**************************************************************************/
 
         for(aux = head; aux!=NULL; aux= aux->next){
 
@@ -583,13 +586,6 @@ void Add_keyword(int fd, pic_info pi){
 
   return;
 }
-/*
-int i;
-for(i=0; i<50; i++){
-  photos[i]=0;        Get_picture(fd, pi);
-      break;
-    }
-}*/
 
 void Search_picture(int fd, pic_info pi){
   uint32_t photos[50];
@@ -735,7 +731,7 @@ static void handle(int sig, siginfo_t *siginfo,void *context){
 
                 	  (const struct sockaddr *) &gateway_addr,sizeof(gateway_addr));
 
-  Broadcast(-19, genlist, npeers);
+  //Broadcast(-19, genlist, npeers); /*****************************************************************************/
   close(new_cli_sock);
   close(sock_TCP);
   close(sock_gateway_fd);
