@@ -186,7 +186,6 @@ photolist * DeletePhoto(photolist *head, photolist *rem){
 
   if(head==rem){    //remover o head
     head=head->next;
-    free(rem->file_name);
     sprintf(str, "%d", rem->id_photo);
     unlink(str);
     FreeKeywords(rem->key_head);
@@ -202,7 +201,6 @@ photolist * DeletePhoto(photolist *head, photolist *rem){
   while(aux != NULL){   //remover outro
     if(aux==rem){
       aux2->next=aux->next;
-      free(rem->file_name);
       sprintf(str, "%d", rem->id_photo);
       unlink(str);
       FreeKeywords(rem->key_head);
@@ -250,4 +248,3 @@ photolist *InsertPhotoEnd(photolist *head, uint32_t new_id_photo, char * new_fil
 uint32_t GetID(photolist *head){
   return head->id_photo;
 }
-

@@ -229,52 +229,6 @@ int main (){
           NewKeyWord(aux, keywordvector[i].keyword_name);
         }
       }
-
-      //Reciving pictures
-      char server_img[100];
-      //char *p_array;
-      long photo_size=0;
-      int total_bytes;
-      for(aux = head; aux!=NULL; aux = aux->next){
-        total_bytes = 0;
-        FILE *image;
-        nbytes = recv(sock_fd_server, &photo_size, sizeof(int), 0);
-        if(nbytes == -1){
-          perror("Receiving");
-          exit(-1);
-        }
-        printf("Pic_size: %ld\n", photo_size);
-      /*
-        p_array = malloc(sizeof(char)*photo_size);
-        sprintf(server_img, "%u", aux->id_photo);
-        //Receive byte array of the image
-        recv(sock_fd_server, p_array, photo_size, 0);
-        //Reconstruct byte array into picture
-        image = fopen(server_img, "wb");
-        fwrite(p_array, photo_size, 1 ,image);
-        fclose(image);
-        free(p_array);
-        */
-        sprintf(server_img, "%u", aux->id_photo);
-        char *p_array;
-        printf("Reading Picture Byte Array\n");
-        while(total_bytes<photo_size){
-          nbytes = recv(sock_fd_server, p_array, photo_size, 0);
-          if(nbytes<=0)
-            break;
-          p_array  += nbytes;
-          total_bytes += nbytes;
-        }
-        if(total_bytes > photo_size)
-          return -2;
-        //Reconstruct byte array into picture
-        printf("Converting Byte Array to Picture\n");
-        image = fopen( server_img, "wb");
-        fwrite(p_array, photo_size, 1, image);
-        fclose(image);
-
-        printf("Picture Added!\n\n");
-      }
     }
 
     close(sock_fd_server);
@@ -572,8 +526,6 @@ void Add_picture(int fd, pic_info pi){
   pic_id = 0;
   char server_img[1000];
   char p_array[pi.size];
-
-  printf("Picture size: %u", pi.size);
   FILE *image;
   printf("Picture Size: %d\nPicture Name: %s\n", pi.size, pi.pic_name );
   clock_t current = clock();
