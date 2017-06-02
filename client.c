@@ -20,11 +20,26 @@ int end =1;
 //Signal handlelling function
 static void handle(int sig, siginfo_t *siginfo,void *context);
 int check_pipe();
+void Usage();
 
-int main (){
+int main (int argc, char *argv[]){
 
-  char * host = "127.0.0.1";
-  int port = 3001;
+  if(argc != 3){
+    Usage();
+    exit(0);
+  }
+
+  char * host;
+  int port = 0;
+
+  host=argv[1];
+  sscanf(argv[2], "%d", &port);
+
+  if(port==0){
+    Usage();
+    exit(0);
+  }
+
   pic_info p;
   int peer_socket;
   struct sigaction *act;
@@ -269,4 +284,8 @@ int check_pipe(){
 
 static void handle(int sig, siginfo_t *siginfo,void *context){
   end=0;
+}
+void Usage(){
+  printf("Usage: ./client gateway_ip gateway_port \n");
+  return;
 }
