@@ -1,4 +1,5 @@
 #define MESSAGE_LEN 20
+#define TIMEOUT_INTERVAL 5
 #include <stdint.h>
 #include <ctype.h>
 #include <sys/un.h>

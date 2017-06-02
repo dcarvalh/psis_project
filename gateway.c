@@ -258,9 +258,11 @@ void *peer_com(){
       pthread_mutex_unlock(&mutex);
     }
     if(m.message_type == -1){
-      printf("Remove Peer:\n");
-      printf("%s \n", m.addr);
-      printf("%d \n\n", m.port);
+      if(head != NULL){
+        printf("Remove Peer:\n");
+        printf("%s \n", m.addr);
+        printf("%d \n\n", m.port);
+      }
 
       pthread_mutex_lock(&mutex);
       head = RemovePeer(head, m.addr, m.port);

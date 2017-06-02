@@ -38,8 +38,10 @@ struct sigaction *act;  //sigaction handler
 
 photolist *head;  //Picture list head
 
-
 int nbytes; //number of bytes read or sent
+
+fd_set          input_set; //timeout input set
+struct timeval  timeout;   //timeout value
 
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// HEADERS //////////////////////////////////////
@@ -93,7 +95,7 @@ int main (int argc, char *argv[]){
   int t_args;
 ////Sigaction Initialization
   act = malloc(sizeof(act));
-  act->sa_sigaction = & handle;
+  act->sa_sigaction = &handle;
   act->sa_flags = SA_SIGINFO;
 //Defining Ctrl+C as a save closing method
   if(sigaction(SIGINT, act, NULL) <0){
@@ -137,9 +139,8 @@ int main (int argc, char *argv[]){
     exit(-1);
   }
 
-  printf("\nSent:\n");
+  printf("\nSent to gateway:\n");
   printf("%d \n", m.message_type);
-  printf("%s \n", m.addr);
   printf("%d \n\n", m.port);
 
   free(buff);
@@ -149,11 +150,28 @@ int main (int argc, char *argv[]){
   //Recive number of current existing peers
 
   //////////////////timeout
+
+  ////////////////////TIMEOUT
+  /* Empty the FD Set */
+  FD_ZERO(&input_set );
+  /* Listen to the input descriptor */
+  FD_SET(sock_gateway_fd, &input_set);
+  /* Waiting for some seconds */
+  timeout.tv_sec = TIMEOUT_INTERVAL+2;    // WAIT seconds
+  timeout.tv_usec = 0;    // 0 milliseconds
+
+  if(select(sock_gateway_fd+1, &input_set, NULL, NULL, &timeout) <= 0){
+    printf("Gateway timeout. Please verify your IP and PORT input\n");
+    close(sock_gateway_fd);
+    free(act);
+    exit(0);
+  }
   nbytes=recv(sock_gateway_fd, &npeers, sizeof(npeers),0);
   if(nbytes == -1){
     perror("Reciving");
     exit(-1);
   }
+
   peer_head = InitList();
 
   peerlist list[npeers];
@@ -693,7 +711,6 @@ static void handle(int sig, siginfo_t *siginfo,void *context){
 
   //Sending disconect message to gateway_addr
   sendto(sock_gateway_fd, buff, sizeof(m), 0,
-
                 	  (const struct sockaddr *) &gateway_addr,sizeof(gateway_addr));
   free(buff);
 
@@ -745,6 +762,6 @@ void Broadcast(int messagetype, peerlist *peerlist, int npeers){
 }
 
 void Usage(){
-  printf("Usage: ./client gateway_ip gateway_port \n");
+  printf("Usage: ./server gateway_ip gateway_port \n");
   return;
 }

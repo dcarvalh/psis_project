@@ -103,12 +103,14 @@ int CountPeers(peerlist *head){
 peerlist * RemovePeer(peerlist *head, char r_ip[MESSAGE_LEN], int r_port){
     peerlist *aux, *aux2;
     aux = head;
-    aux2 = aux->next;
 
     if(aux == NULL){ //empty list
       printf("List is empty! Trying to remove Peer from empty list.\n"); //debug
+      head=NULL;
       return head;
     }
+
+    aux2 = aux->next;
 
     if(aux == aux2){ //If head is the only server in the list
       printf("Only head in list\n"); //debug

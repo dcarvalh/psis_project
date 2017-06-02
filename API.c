@@ -12,8 +12,6 @@
 #include <sys/stat.h>
 #include <sys/time.h> //timeout
 #include <inttypes.h>
-#define TIMEOUT_INTERVAL 5
-
 
 fd_set          input_set;
 struct timeval  timeout;
