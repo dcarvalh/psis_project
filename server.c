@@ -462,7 +462,7 @@ void *cli_com(void *new_cli_sock){
           if(nbytes==-1){
             perror("Sending");
           }
-          
+
           free(buff);
 
           //Filling keyword vector with photo keyword
@@ -502,13 +502,15 @@ void *cli_com(void *new_cli_sock){
           if(keycount != 0)
             free(k_vector);
 
+          //synchronization with bug
+          /*
           pic_info photo_stuff;
           for(aux = head; aux!=NULL; aux= aux->next){
               photo_stuff.size = aux->id_photo;
               printf("Photo ID: %u\n",photo_stuff.size);
               Get_picture(fd, photo_stuff);
-
-          }//END FOR
+          }
+          */
       }
 
         pthread_exit(NULL);
