@@ -14,7 +14,7 @@ void PrintPhotoList(photolist * head);
 
 void FreePhotoList(photolist * head);
 
-keyword *NewKeyWord(keyword *key_head, char *new_key_name);
+void NewKeyWord(photolist *aux, char *new_key_name);
 
 void PrintKeyWords(photolist *k_head);
 
@@ -29,3 +29,5 @@ void FreeKeywords(keyword * head);
 photolist * DeletePhoto(photolist *head, photolist *aux2);
 
 char *GetPhotoName(photolist *head);
+
+uint32_t GetID(photolist *head);
