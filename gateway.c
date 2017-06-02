@@ -27,7 +27,25 @@ void *peer_com();   //Code that the thread that comunicates with the peers will 
 static void handle(int sig, siginfo_t *siginfo,void *context);
 
 
-int main(){
+int main( ){
+/* int argc, char *argv[]
+
+  if(argc != 2){
+    Usage();
+    exit(0);
+  }
+
+  void usage()
+  {
+  	fprintf(stderr, "Not enough arguments.\n\n");
+  	printf("Usage: schat -n name.surname -i ip -p scport -s snpip -q snpport \n");
+  	return;
+  }
+
+  if(strcmp("-p",argv[i])==0){
+    sscanf(argv[i+1], "%d", &scport);
+  }
+*/
 
   end=1;
   struct  sigaction *act;
