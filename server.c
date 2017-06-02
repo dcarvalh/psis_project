@@ -1,7 +1,6 @@
 #include "message.h"
 #include "img_list.h"
 #include "list.h"
-
 #include <ctype.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -14,49 +13,67 @@
 #include <string.h>
 #include <pthread.h>
 #include <time.h>
-
 #define MAX_WAIT_LIST 5
 
-/*Used sockets in th server must be declared as global variables to be closed in
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////// GLOBAL VARIABLES ////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
+/*Used sockets in the server must be declared as global variables to be closed in
   the sigaction function*/
+
 int npeers=0;
 peerlist *genlist;  //Vector that will keeps the existing peers
 
-int new_cli_sock;
-int sock_TCP;
-int sock_gateway_fd;
+int new_cli_sock;        //fd for new clients
+int sock_TCP;            //fd for accepting new clients
+int sock_gateway_fd;     //fd for communicating with gateway
 
-struct sockaddr_in gateway_addr;
-char *buff;
-message m;
-struct sockaddr_in client_addr;
+
+struct sockaddr_in gateway_addr; //for communicating with gateway
+message m;                       //struct for communicating with gateway
+
+
 struct sockaddr_in server_addr;
 
-int client_count=0;
-struct sigaction *act;
+int client_count = 0;   //number of active clients
+struct sigaction *act;  //sigaction handler
 
-//Picture list variables
-photolist *head;
+photolist *head;  //Picture list head
 
-peerlist *peer_head; //Head to the list of all other peers
+int nbytes; //number of bytes read or sent
+
+////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////// HEADERS //////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 void *cli_com(void  *new_cli_sock);
 static void handle(int sig, siginfo_t *siginfo,void *context);
+
+void Add_picture(int fd, pic_info pi);
+void Add_keyword(int fd, pic_info pi);
+void Search_picture(int fd, pic_info pi);
+void Delete_picture(int fd, pic_info pi);
+void Picture_name(int fd, pic_info pi);
+void Get_picture(int fd, pic_info pi);
+
+peerlist *peer_head; //Head to the list of all other peers
 void Broadcast(int messagetype, peerlist *peerlist, int npeers);
 
+////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////// MAIN ////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 int main (){
   //Structures that will save the information of the several
+
+  struct sockaddr_in client_addr;
+
   struct sockaddr_in local_addr;
 
   socklen_t addrlen;
-  int nbytes;
-
 
   //Threads that will comunicate with the client
   pthread_t thread_c;
   int iret_c;
   int *t_args;
-
-
 
 ////Sigaction Initialization
   act = malloc(sizeof(act));
@@ -79,7 +96,7 @@ int main (){
   local_addr.sin_port = htons(3000+getpid());
   local_addr.sin_addr.s_addr=INADDR_ANY;
 
-  //Incialização da gatewa address
+  //Incialização gateway address
   gateway_addr.sin_family = AF_INET;
   gateway_addr.sin_port = htons(3002);
   gateway_addr.sin_addr.s_addr=inet_addr("127.0.0.1");
@@ -97,6 +114,7 @@ int main (){
   printf("%d \n\n", m.port);
 
 //copying the memory of the structure to the mem location of a buffer
+  char *buff;
   buff =(char *) malloc(sizeof (m));
   memcpy(buff, &m, sizeof(m));
 
@@ -247,19 +265,18 @@ int main (){
 
 }//END OF MAIN
 
+////////////////////////////////////////////////////////////////////////////////
+///////////////////////////// CLIENT THREAD ////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 void *cli_com(void *new_cli_sock){
 
   //Socket communication variables
   int fd = *(int*)new_cli_sock;
   char *buff;
-  socklen_t  size_addr = sizeof(client_addr);
   //Picture variables
   pic_info pi;
-  uint32_t pic_id;
 
   while(1){
-
-    pic_id = 0;
     //Reciving message from client
     pi.size=0; //inicializar o ID
     buff =  (char*)malloc(sizeof (pi));
@@ -283,194 +300,42 @@ void *cli_com(void *new_cli_sock){
         pthread_exit ((void*) &retval);
       break;
       }
-      ///////////////////
-      //Add_picture protocol
+
       case 2:
       {
-        char server_img[1000];
-        char p_array[pi.size];
-        FILE *image;
-        printf("Picture Size: %d\nPicture Name: %s\n", pi.size, pi.pic_name );
-        clock_t current = clock();
-        pic_id = getpid() + (current*10000);
-        sprintf(server_img, "%d", pic_id);
-        //Recive byte image array
-        printf("Reading Picture Byte Array\n");
-        read(fd, p_array, pi.size);
-        //Adding photo to the photo lista
-        head = NewPhoto(head, pic_id, pi.pic_name);
-        //Reconstruct byte array into picture
-        printf("Converting Byte Array to Picture\n");
-        image = fopen( server_img, "w");
-        fwrite(p_array, 1, sizeof(p_array), image);
-        fclose(image);
-        nbytes = sendto(fd, &pic_id, sizeof(pic_id), 0,
-                        (struct sockaddr *) &client_addr, size_addr);
-        if(nbytes == -1){
-          perror("Sending");
-          exit(-1);
-        }
-        printf("Picture Added!\n\n");
+        Add_picture(fd, pi);
         PrintPhotoList(head);
         break;
       }
-      ////////////////End ADD PICTURE!
-      /////////////Add Keyword protocol//////////////////
       case 3:
       {
-        int k;
-        photolist *aux = head;
-        keyword  *k_head;
-        if((aux = GetPhoto(head, pi.size))!=NULL){
-          k_head = GetKeyHead(aux);
-          k_head = NewKeyWord(k_head, pi.pic_name);
-          Adding(aux, k_head);
-          PrintKeyWords(aux);
-          k = 1;
-        }else{
-          k = -1;
-        }
-        nbytes = sendto(fd, &k, sizeof(k), 0,
-                        (struct sockaddr *) &client_addr, size_addr);
-        if(nbytes == -1){
-          perror("Sending");
-          exit(-1);
-        }
+        Add_keyword(fd, pi);
+        PrintPhotoList(head);
         break;
       }
-      ////////////////////END ADD KEYWORD
-
-      //// SEARCH PHOTO protocol
       case 4:
       {
-        uint32_t photos[50];
-
-        int n = SearchPhotosbyKeyWords(head, pi.pic_name, photos);
-
-        printf("Nº Photos: %d\n", n);
-        //Sending amount of photos found
-        nbytes = sendto(fd, &n, sizeof(n), 0,
-                        (struct sockaddr *) &client_addr, size_addr);
-        for(int i=0; photos[i] != 0; i++)
-          printf("%" PRIu32 "\n", photos[i]);
-        //Sending array as a byte stream
-        nbytes = sendto(fd, &photos, n*sizeof(uint32_t), 0,
-                        (struct sockaddr *) &client_addr, size_addr);
-        if(nbytes == -1){
-          perror("Sending");
-          exit(-1);
-        }
+        Search_picture(fd, pi);
         break;
       }
-
-      /////////////Delete photo protocol//////////////////
       case 5:
       {
-        int k;
-        photolist *aux;
-        if((aux = GetPhoto(head, pi.size))!=NULL){
-          printf("Delete photo " "%" PRIu32 "\n", pi.size);
-          head=DeletePhoto(head, aux);
-          if(head==(photolist * )-1){
-            perror("deleting photo");
-            exit(-1);
-          }
-          k = 1;
-        }else{
-          k = 0;
-        }
-
-        nbytes = sendto(fd, &k, sizeof(k), 0,
-                        (struct sockaddr *) &client_addr, size_addr);
-        if(nbytes == -1){
-          perror("Sending");
-          exit(-1);
-        }
+        Delete_picture(fd, pi);
+        PrintPhotoList(head);
         break;
       }
       case 6:
       {
-        pic_info p;
-        char * photo_name;
-        photolist *aux;
-        if((aux = GetPhoto(head, pi.size))!=NULL){
-          photo_name=GetPhotoName(aux);
-          strcpy(p.pic_name,photo_name);
-          p.message_type = 1;
-        }else{
-          p.message_type  = 0;
-        }
-
-        char *buff;
-        buff =(char *) malloc(sizeof (p));
-        memcpy(buff, &p, sizeof(p));
-
-        nbytes = sendto(fd, buff, sizeof(p), 0,
-                        (struct sockaddr *) &client_addr, size_addr);
-        if(nbytes == -1){
-          perror("Sending");
-          exit(-1);
-        }
+        Picture_name(fd, pi);
         break;
       }
-      ////////////////////END DELETE PHOTO
-      /////////////////////////////////////GET PHOTO PROTOCOL
       case 7:
-      {
-        photolist *photo;
-        //Verifying if the requested picture exisits
-        if((photo = GetPhoto(head, pi.size))!=NULL){
-          FILE *picture;
-          long pic_size;
-          //Reading stored picture
-          char name[15];
-          sprintf(name, "%"PRIu32, pi.size);
-          picture=fopen(name, "rb");
-          if(picture == NULL){
-            perror("Filename");
-            pic_size = -1;
-          }
-          //Searching the beggining and end of the picture
-          fseek(picture, 0, SEEK_END);
-          pic_size = ftell(picture);
-          rewind(picture);
-          //Sending picture size to client_addr
-          int nbytes = sendto(fd, &pic_size, sizeof(pic_size), 0,
-                          (struct sockaddr *) &client_addr, size_addr);
-          if(nbytes == -1){
-            perror("Sending");
-            exit(-1);
-          }
-          //Sending Picture as byte array
-          char send_buffer[pic_size];
-          size_t fr;
-          while(!feof(picture)){  //Reading file, while it is not the end of file
-            fr=fread(send_buffer ,sizeof(char), sizeof(send_buffer), picture);
-            if(fr>0){
-              nbytes = sendto(fd, send_buffer, sizeof(send_buffer), 0,
-                              (struct sockaddr *) &client_addr, size_addr);
-              if(nbytes == -1){
-                perror("Sending:");
-                exit(0);
-              }
-            }
-            bzero(send_buffer, sizeof(send_buffer));
-          }
-          fclose(picture);
-        }else{
-          //Returning to client that there is no photo with the requested ID
-          int pic_size = 0;
-          int nbytes = sendto(fd, &pic_size, sizeof(pic_size), 0,
-                          (struct sockaddr *) &client_addr, size_addr);
-          if(nbytes == -1){
-            perror("Sending");
-            exit(-1);
-          }
-        }
+      {        
+        Get_picture(fd, pi);
         break;
       }
-      /////////////////////////////END OF GET PHOTO PROOCOL
-      //NEw peer connected protocol
+
+      ///////////////////////////////////////////////////////////////NEW peer connected protocol
       case 19:
       {
         peer_head = NewPeer(peer_head, pi.pic_name, pi.size);
@@ -605,15 +470,213 @@ void *cli_com(void *new_cli_sock){
   }
 }//END OF CLIENT THREAD
 
+///////////////////////////////// CASES ////////////////////////////////////////
+
+void Add_picture(int fd, pic_info pi){
+  uint32_t pic_id;
+  pic_id = 0;
+  char server_img[1000];
+  char p_array[pi.size];
+  FILE *image;
+  printf("Picture Size: %d\nPicture Name: %s\n", pi.size, pi.pic_name );
+  clock_t current = clock();
+  pic_id = getpid() + (current*10000);
+  sprintf(server_img, "%d", pic_id);
+  //Recive byte image array
+  printf("Reading Picture Byte Array\n");
+  read(fd, p_array, pi.size);
+  //Adding photo to the photo lista
+  head = NewPhoto(head, pic_id, pi.pic_name);
+  //Reconstruct byte array into picture
+  printf("Converting Byte Array to Picture\n");
+  image = fopen( server_img, "w");
+  fwrite(p_array, 1, sizeof(p_array), image);
+  fclose(image);
+  nbytes = send(fd, &pic_id, sizeof(pic_id), 0);
+
+  if(nbytes == -1){
+    perror("Sending");
+    exit(-1);
+  }
+  printf("Picture Added!\n\n");
+
+  return;
+}
+
+void Add_keyword(int fd, pic_info pi){
+  uint32_t photos[50];
+  int i;
+  for(i=0; i<50; i++){
+    photos[i]=0;        Get_picture(fd, pi);
+        break;
+      }
+  }
+  int k=0;
+  photolist *aux = head;
+  if((aux = GetPhoto(head, pi.size))!=NULL){
+    SearchPhotosbyKeyWords(head, pi.pic_name, photos);
+    for(i=0; photos[i] != 0; i++){
+      if(photos[i]==GetID(aux)){
+        k = -1; //keyword already exists in that photo
+      }
+    }
+    if(k!=-1){
+      NewKeyWord(aux, pi.pic_name);
+      k = 1;
+    }
+  }else{
+    k = -1;
+  }
+
+  nbytes = send(fd, &k, sizeof(k), 0);
+  if(nbytes == -1){
+    perror("Sending");
+    exit(-1);
+  }
+
+  return;
+}
+
+void Search_picture(int fd, pic_info pi){
+  uint32_t photos[50];
+  int i;
+  for(i=0; i<50; i++){
+    photos[i]=0;
+  }
+  int n = SearchPhotosbyKeyWords(head, pi.pic_name, photos);
+  printf("Nº Photos with keyword '%s': %d\n", pi.pic_name, n);
+  //Sending amount of photos found
+  nbytes = send(fd, &n, sizeof(n), 0);
+  for(i=0; photos[i] != 0; i++){
+    if(i==0)
+      printf("Photos: \n");
+    printf("%" PRIu32 "\n", photos[i]);
+  }
+  printf("\n");
+  //Sending array as a byte stream
+  nbytes = send(fd, &photos, n*sizeof(uint32_t), 0);
+  if(nbytes == -1){
+    perror("Sending");
+    exit(-1);
+  }
+}
+
+void Delete_picture(int fd, pic_info pi){
+  int k;
+  photolist *aux;
+  if((aux = GetPhoto(head, pi.size))!=NULL){
+    printf("Delete photo " "%" PRIu32 "\n", pi.size);
+    head=DeletePhoto(head, aux);
+    if(head==(photolist * )-1){
+      perror("deleting photo");
+      exit(-1);
+    }
+    k = 1;
+  }else{
+    k = 0;
+  }
+  nbytes = send(fd, &k, sizeof(k), 0);
+  if(nbytes == -1){
+    perror("Sending");
+    exit(-1);
+  }
+
+  return;
+}
+
+void Picture_name(int fd, pic_info pi){
+  pic_info p;
+  char * photo_name;
+  photolist *aux;
+  if((aux = GetPhoto(head, pi.size))!=NULL){
+    photo_name=GetPhotoName(aux);
+    strcpy(p.pic_name,photo_name);
+    p.message_type = 1;
+  }else{
+    p.message_type  = 0;
+  }
+  char *buff;
+  buff =(char *) malloc(sizeof (p));
+  memcpy(buff, &p, sizeof(p));
+
+  nbytes = send(fd, buff, sizeof(p), 0);
+  if(nbytes == -1){
+    perror("Sending");
+    exit(-1);
+  }
+
+  return;
+}
+
+
+
+void Get_picture(int fd, pic_info pi){
+  photolist *photo;
+  //Verifying if the requested picture exisits
+  if((photo = GetPhoto(head, pi.size))!=NULL){
+    FILE *picture;
+    long pic_size;
+    //Reading stored picture
+    char name[15];
+    sprintf(name, "%"PRIu32, pi.size);
+    picture=fopen(name, "rb");
+    if(picture == NULL){
+      perror("Filename");
+      pic_size = -1;
+    }
+    //Searching the beggining and end of the picture
+    fseek(picture, 0, SEEK_END);
+    if(pic_size != -1){
+      pic_size = ftell(picture);
+    }
+    rewind(picture);
+    //Sending picture size to client_addr
+    int nbytes = send(fd, &pic_size, sizeof(pic_size), 0);
+    if(nbytes == -1){
+      perror("Sending");
+      exit(-1);
+    }
+    //Sending Picture as byte array
+    char send_buffer[pic_size];
+    size_t fr;
+    while(!feof(picture)){  //Reading file, while it is not the end of file
+      fr=fread(send_buffer ,sizeof(char), sizeof(send_buffer), picture);
+      if(fr>0){
+        nbytes = send(fd, send_buffer, sizeof(send_buffer), 0);
+        if(nbytes == -1){
+          perror("Sending:");
+          exit(0);
+        }
+      }
+      bzero(send_buffer, sizeof(send_buffer));
+    }
+    fclose(picture);
+  }else{
+    //Returning to client that there is no photo with the requested ID
+    int pic_size = 0;
+    int nbytes = send(fd, &pic_size, sizeof(pic_size), 0);
+    if(nbytes == -1){
+      perror("Sending");
+      exit(-1);
+    }
+  }
+
+  return;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////// HANDLER ///////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 static void handle(int sig, siginfo_t *siginfo,void *context){
 
-  m.message_type = -1;//message of the type -1 tells the gateway the server is disconnecting
-
   PrintPhotoList(head);
-
+  char * buff;
   buff =(char *) malloc(sizeof (m));
+  //Sending disconect message to gateway_addr
+  m.message_type = -1;//message of the type -1 tells the gateway the server is disconnecting
   memcpy(buff, &m, sizeof(m));
-//Sending disconect message to gateway_addr
+
+  //Sending disconect message to gateway_addr
   sendto(sock_gateway_fd, buff, sizeof(m), 0,
                 	  (const struct sockaddr *) &gateway_addr,sizeof(gateway_addr));
 
