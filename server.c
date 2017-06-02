@@ -466,6 +466,8 @@ void *cli_com(void *new_cli_sock){
         if(keycount != 0)
           free(k_vector);
 
+        pic_info info;
+
         for(aux = head; aux!=NULL; aux= aux->next){
 
           FILE *picture;
@@ -504,6 +506,7 @@ void *cli_com(void *new_cli_sock){
             bzero(send_buffer, sizeof(send_buffer));
           }
           fclose(picture);
+
         }//END FOR
         pthread_exit(NULL);
         break;
@@ -729,8 +732,8 @@ static void handle(int sig, siginfo_t *siginfo,void *context){
 
   //Sending disconect message to gateway_addr
   sendto(sock_gateway_fd, buff, sizeof(m), 0,
+
                 	  (const struct sockaddr *) &gateway_addr,sizeof(gateway_addr));
-                    
 
   Broadcast(-19, genlist, npeers);
   close(new_cli_sock);
