@@ -19,6 +19,8 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 peerlist * head;    //Head pointer to list
 int sock_fd_peer;   //Peer communication socket
 int sock_fd_client; //Client communication socket
+int client_port=0;
+int peer_port=0;
 int end;        //Variable that decides the end of the program
 void *cli_com();    //Code that the thread that comunicates with the client will run
 void *peer_com();   //Code that the thread that comunicates with the peers will run
@@ -26,26 +28,22 @@ void *peer_com();   //Code that the thread that comunicates with the peers will 
 //Code that will be run when the Ctrl+C signal is recived(safe exit)
 static void handle(int sig, siginfo_t *siginfo,void *context);
 
+void Usage();
 
-int main( ){
-/* int argc, char *argv[]
+int main(int argc, char *argv[]){
 
-  if(argc != 2){
+  if(argc != 3){
     Usage();
     exit(0);
   }
 
-  void usage()
-  {
-  	fprintf(stderr, "Not enough arguments.\n\n");
-  	printf("Usage: schat -n name.surname -i ip -p scport -s snpip -q snpport \n");
-  	return;
-  }
+  sscanf(argv[1], "%d", &client_port);
+  sscanf(argv[2], "%d", &peer_port);
 
-  if(strcmp("-p",argv[i])==0){
-    sscanf(argv[i+1], "%d", &scport);
+  if(client_port==0||peer_port==0){
+    Usage();
+    exit(0);
   }
-*/
 
   end=1;
   struct  sigaction *act;
@@ -112,7 +110,7 @@ void *cli_com(){
 
   //Local Adress Inicialazation
   local_addr.sin_family = AF_INET;
-  local_addr.sin_port=htons(3001);     //Port that comunicates with the client
+  local_addr.sin_port=htons(client_port);     //Port that comunicates with the client
   local_addr.sin_addr.s_addr=INADDR_ANY;
 
   int err = bind(sock_fd_client,(struct sockaddr *)&local_addr, sizeof(local_addr));
@@ -192,7 +190,7 @@ void *peer_com(){
 
   //Local Adress Inicialazation
   local_addr.sin_family = AF_INET;
-  local_addr.sin_port=htons(3002);   //Port that comunicates with the peers
+  local_addr.sin_port=htons(peer_port);   //Port that comunicates with the peers
   local_addr.sin_addr.s_addr=INADDR_ANY;
 
   //Binding Socket to the local_addr
@@ -222,7 +220,7 @@ void *peer_com(){
     if(m.message_type == 1){
 
       printf("\nNew Peer:\n");
-      printf("%s \n", m.addr);
+      printf("%s \n", inet_ntoa(peer_addr.sin_addr));
       printf("%d \n\n", m.port);
 
 //Sending amount of currently connected Peers
@@ -271,6 +269,11 @@ void *peer_com(){
     }
   }
 }//End of peer communication
+
+void Usage(){
+  printf("Usage: ./gateway client_port peer_port \n");
+  return;
+}
 
 //Sigaction handler, aka, interruption that will kill the program safelly by pressing Ctrl+C
 static void handle(int sig, siginfo_t *siginfo,void *context){

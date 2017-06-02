@@ -58,14 +58,30 @@ void Get_picture(int fd, pic_info pi);
 peerlist *peer_head; //Head to the list of all other peers
 void Broadcast(int messagetype, peerlist *peerlist, int npeers);
 
+void Usage();
 ////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////// MAIN ////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
-int main (){
+int main (int argc, char *argv[]){
+  if(argc != 3){
+    Usage();
+    exit(0);
+  }
+
+  char * gate_ip;
+  int gate_port = 0;
+
+  gate_ip=argv[1];
+  sscanf(argv[2], "%d", &gate_port);
+
+  if(gate_port==0){
+    Usage();
+    exit(0);
+  }
+
+
   //Structures that will save the information of the several
-
   struct sockaddr_in client_addr;
-
   struct sockaddr_in local_addr;
 
   socklen_t addrlen;
@@ -98,20 +114,15 @@ int main (){
 
   //Incialização gateway address
   gateway_addr.sin_family = AF_INET;
-  gateway_addr.sin_port = htons(3002);
-  gateway_addr.sin_addr.s_addr=inet_addr("127.0.0.1");
+  gateway_addr.sin_port = htons(gate_port);
+  gateway_addr.sin_addr.s_addr=inet_addr(gate_ip);
 
-  printf("Datagram socket created and binded\n");
+  printf("Datagram socket created\n");
 
 //Filling uo the structure to sent the Gateway
   m.port=ntohs(local_addr.sin_port);
   m.message_type= 1;
-  strcpy(m.addr, "127.0.0.1");
-
-  printf("\nSent:\n");
-  printf("%d \n", m.message_type);
-  printf("%s \n", m.addr);
-  printf("%d \n\n", m.port);
+  strcpy(m.addr, gate_ip);
 
 //copying the memory of the structure to the mem location of a buffer
   char *buff;
@@ -121,6 +132,15 @@ int main (){
 //Sending conect message to gateway_addr
   nbytes = sendto(sock_gateway_fd, buff, sizeof(m), 0,
                 	  (const struct sockaddr *) &gateway_addr,sizeof(gateway_addr));
+  if(nbytes == -1){
+    perror("Sending");
+    exit(-1);
+  }
+
+  printf("\nSent:\n");
+  printf("%d \n", m.message_type);
+  printf("%s \n", m.addr);
+  printf("%d \n\n", m.port);
 
   free(buff);
   printf("bytes sent: %d \n", nbytes);
@@ -128,6 +148,7 @@ int main (){
   //////////////////////////////////Replication///////////////////////////////////////////////////////
   //Recive number of current existing peers
 
+  //////////////////timeout
   nbytes=recv(sock_gateway_fd, &npeers, sizeof(npeers),0);
   if(nbytes == -1){
     perror("Reciving");
@@ -444,64 +465,10 @@ void *cli_com(void *new_cli_sock){
         if(keycount != 0)
           free(k_vector);
 
-        //char *send_buffer;
-        //size_t fr;
+        pic_info photo_stuff;
         for(aux = head; aux!=NULL; aux= aux->next){
-
-          FILE *image;
-          long pic_size;
-          //Size
-          char name[15];
-          sprintf(name, "%u", aux->id_photo);
-          image = fopen(name, "rb");
-          if(image ==  NULL){
-            perror("Filename");
-            pic_size = -1;
-          }
-          //Searching the begining of the photo
-          fseek(image, 0, SEEK_END);
-          if(pic_size != -1){
-            pic_size = ftell(image);
-          }
-          rewind(image);
-          printf("Pic_size: %ld\n",pic_size );
-          //Sending pictire size
-          nbytes = send(fd, &pic_size, sizeof(pic_size),0);
-          if(nbytes == -1){
-            perror("Sending");
-            pthread_exit(NULL);
-          }
-          /*
-        //Sending picture as byte array
-          send_buffer = malloc(sizeof(char)*pic_size);
-          while(!feof(image)){
-            fr=fread(send_buffer, pic_size,1, image);
-            if(fr>0){
-              nbytes = send(fd, send_buffer, sizeof(send_buffer),0);
-              if(nbytes == -1){
-                perror("Sending");
-                pthread_exit(NULL);
-              }
-            }
-            bzero(send_buffer, sizeof(*send_buffer));
-            */
-
-            char send_buffer[pic_size];
-            size_t fr;
-            while(!feof(image)){  //Reading file, while it is not the end of file
-              fr=fread(send_buffer ,sizeof(char), sizeof(send_buffer), image);
-              if(fr>0){
-                nbytes = send(fd, send_buffer, sizeof(send_buffer), 0);
-                if(nbytes == -1){
-                  perror("Sending");
-                  return 0;
-                }
-              }
-              bzero(send_buffer, sizeof(send_buffer));
-            }
-            fclose(image);
-      /*    }
-          fclose(image);*/
+            photo_stuff.size=aux->id_photo;
+            Get_picture(fd,photo_stuff);
         }//END FOR
         pthread_exit(NULL);
         break;
@@ -775,4 +742,9 @@ void Broadcast(int messagetype, peerlist *peerlist, int npeers){
       close(sock_fd_server);
   }
   PrintList(peer_head);
+}
+
+void Usage(){
+  printf("Usage: ./client gateway_ip gateway_port \n");
+  return;
 }
