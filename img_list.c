@@ -42,13 +42,14 @@ void PrintPhotoList(photolist * head)
 {
 
   if(head==NULL){
-    printf("Empty photo list\n");
+    printf("\nEmpty photo list\n");
     return;
   }
 
   photolist * aux;
   aux = head;
 
+  printf("\n");
   int i=1;
   while(aux != NULL){
     aux=head->next;
@@ -100,23 +101,28 @@ photolist *GetPhoto(photolist *head, uint32_t id){
   return NULL;
 }
 
-keyword *NewKeyWord(keyword *key_head, char *new_key_name){
+void NewKeyWord(photolist *aux, char *new_key_name){
+  keyword *k_head;
+  k_head=aux->key_head;
   keyword *new;
   new = (keyword *) malloc (sizeof(keyword));
 
   strcpy(new->keyword_name, new_key_name);
 
-  if(key_head == NULL){
+  if(k_head == NULL){
     new->next_key = NULL;
   }else{
-    new->next_key = key_head;
+    new->next_key = k_head;
   }
-  key_head = new;
-  return key_head;
+  k_head = new;
+
+  printf("Keyword '%s' added to " "%" PRIu32 "\n", new_key_name, aux->id_photo);
+
+  aux->key_head = k_head;
+  return;
 }
 
 keyword *GetKeyHead(photolist *head){
-  printf("Keyword added to " "%" PRIu32 "\n", head->id_photo);
   return head->key_head;
 }
 
@@ -157,7 +163,7 @@ int SearchPhotosbyKeyWords(photolist *head, char *kword, uint32_t *photos){
 
 void FreeKeywords(keyword * head){
   if(head==NULL){
-    printf("No keywords\n");
+    //printf("No keywords\n");
     return;
   }
 
@@ -169,7 +175,7 @@ void FreeKeywords(keyword * head){
     free(head);
     head=aux;
   }
-  printf("Keywords free\n");
+  //printf("Keywords free\n");
 	return;
 
 }
@@ -214,6 +220,7 @@ char *GetPhotoName(photolist *head){
   return head->file_name;
 }
 
+
 photolist *InsertPhotoEnd(photolist *head, uint32_t new_id_photo, char * new_file_name){
 
   photolist *aux;
@@ -229,6 +236,7 @@ photolist *InsertPhotoEnd(photolist *head, uint32_t new_id_photo, char * new_fil
     head = new;
     return head;
   }else{
+
     for(aux=head; aux!= NULL; aux=aux->next){
       if(aux->next==NULL){
         aux->next = new;
@@ -238,3 +246,8 @@ photolist *InsertPhotoEnd(photolist *head, uint32_t new_id_photo, char * new_fil
   }
   return head;
 }
+
+uint32_t GetID(photolist *head){
+  return head->id_photo;
+}
+
