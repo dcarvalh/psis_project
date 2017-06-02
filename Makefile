@@ -5,9 +5,9 @@ TARGET2=server
 TARGET3=client
 CFLAGS= -g -Wall
 
-OBJFILES1=gateway.o list.o
-OBJFILES2=server.o img_list.o list.o
-OBJFILES3=client.o API.o
+OBJFILES1=gateway.o list.o message.o
+OBJFILES2=server.o img_list.o list.o message.o
+OBJFILES3=client.o API.o message.o
 
 THREAD=-lpthread
 

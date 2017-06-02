@@ -138,7 +138,7 @@ uint32_t  gallery_add_photo(int peer_socket, char *file_name){
   char *buff =(char *) malloc(sizeof (p));
   memcpy(buff, &p, sizeof(p));
 
-  int nbytes = send(peer_socket, buff, sizeof(p), 0);
+  int nbytes = send_all(peer_socket, buff, sizeof(p), 0);
   if(nbytes == -1){
     perror("Sending");
     return 0;
@@ -151,7 +151,7 @@ uint32_t  gallery_add_photo(int peer_socket, char *file_name){
   while(!feof(picture)){  //Reading file, while it is not the end of file
     fr=fread(send_buffer ,sizeof(char), sizeof(send_buffer), picture);
     if(fr>0){
-      nbytes = send(peer_socket, send_buffer, sizeof(send_buffer), 0);
+      nbytes = send_all(peer_socket, send_buffer, sizeof(send_buffer), 0);
       if(nbytes == -1){
         perror("Sending");
         return 0;
@@ -317,7 +317,7 @@ int gallery_get_photo(int peer_socket, uint32_t id_photo, char *file_name){
     //Reciving byte array
     FILE *picture;
     char p_array[pic_size];
-    read(peer_socket, p_array, pic_size);
+    recv_all(peer_socket, p_array, pic_size,0);
 
     //Reconstructing byte array
     picture = fopen(file_name, "wb");
