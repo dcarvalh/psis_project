@@ -533,7 +533,11 @@ void Add_picture(int fd, pic_info pi){
   sprintf(server_img, "%d", pic_id);
   //Recive byte image array
   printf("Reading Picture Byte Array\n");
-  read(fd, p_array, pi.size);
+  nbytes = recv_all(fd, p_array, pi.size, 0);
+  if(nbytes == -1){
+    perror("Reciving");
+    exit(-1);
+  }
   //Adding photo to the photo list
   head = NewPhoto(head, pic_id, pi.pic_name);
   //Reconstruct byte array into picture
@@ -579,13 +583,6 @@ void Add_keyword(int fd, pic_info pi){
 
   return;
 }
-/*
-int i;
-for(i=0; i<50; i++){
-  photos[i]=0;        Get_picture(fd, pi);
-      break;
-    }
-}*/
 
 void Search_picture(int fd, pic_info pi){
   uint32_t photos[50];
@@ -658,8 +655,6 @@ void Picture_name(int fd, pic_info pi){
   return;
 }
 
-
-
 void Get_picture(int fd, pic_info pi){
   photolist *photo;
   //Verifying if the requested picture exisits
@@ -681,6 +676,7 @@ void Get_picture(int fd, pic_info pi){
     }
     rewind(picture);
     //Sending picture size to client_addr
+
     int nbytes = send(fd, &pic_size, sizeof(pic_size), 0);
     if(nbytes == -1){
       perror("Sending");
@@ -694,7 +690,7 @@ void Get_picture(int fd, pic_info pi){
     while(!feof(picture)){  //Reading file, while it is not the end of file
       fr=fread(send_buffer , pic_size, 1, picture);
       if(fr>0){
-        nbytes = send(fd, send_buffer, sizeof(send_buffer), 0);
+        nbytes = send_all(fd, send_buffer, sizeof(send_buffer), 0);
         if(nbytes == -1){
           perror("Sending:");
           exit(0);
