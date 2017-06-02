@@ -2,19 +2,21 @@
 
 struct photo{    //List that will store photo information
   uint32_t id_photo;
-  char *file_name;
+  char file_name[20];
   struct keyword * key_head;
   struct photo * next;
 };
 
 struct keyword{    //List that will store keyword information
-  char *keyword_name;
+  char keyword_name[20];
   struct keyword * next_key;
 };
 
 typedef struct keyword keyword;
 
 typedef struct photo photolist;
+
+typedef struct photo_data photodata;
 
 photolist * InitPhotoList(void);
 
@@ -45,4 +47,3 @@ char *GetPhotoName(photolist *head);
 photolist *InsertPhotoEnd(photolist *head, uint32_t new_id_photo, char * new_file_name);
 
 uint32_t GetID(photolist *head);
-

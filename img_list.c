@@ -21,7 +21,6 @@ photolist * NewPhoto(photolist * head, uint32_t new_id_photo, char * new_file_na
 	photolist * new;
   new = (photolist *) malloc(sizeof(photolist));
 
-  new->file_name = malloc(strlen(new_file_name)*sizeof(char));
   strcpy(new->file_name, new_file_name);
   new->id_photo = new_id_photo;
   new->key_head = NULL;
@@ -81,7 +80,7 @@ void FreePhotoList(photolist * head){
 
   while(aux != NULL){
     aux=head->next;
-    free(head->file_name);
+
     sprintf(str, "%d", head->id_photo);
     unlink(str);
     FreeKeywords(head->key_head);
@@ -108,7 +107,6 @@ void NewKeyWord(photolist *aux, char *new_key_name){
   keyword *new;
   new = (keyword *) malloc (sizeof(keyword));
 
-  new->keyword_name = malloc(strlen(new_key_name)*sizeof(char));
   strcpy(new->keyword_name, new_key_name);
 
   if(k_head == NULL){
@@ -174,7 +172,6 @@ void FreeKeywords(keyword * head){
 
   while(aux != NULL){
     aux=head->next_key;
-    free(head->keyword_name);
     free(head);
     head=aux;
   }
@@ -227,22 +224,19 @@ char *GetPhotoName(photolist *head){
 photolist *InsertPhotoEnd(photolist *head, uint32_t new_id_photo, char * new_file_name){
 
   photolist *aux;
-  photolist *new;
+  photolist * new;
   new = (photolist *) malloc(sizeof(photolist));
 
-  new->file_name = malloc(strlen(new_file_name)*sizeof(char));
   strcpy(new->file_name, new_file_name);
   new->id_photo = new_id_photo;
   new->key_head = NULL;
-  BICHO;
+
   if(head == NULL){
-    BICHO;
     new->next = NULL;
     head = new;
-    BICHO;
     return head;
   }else{
-    BICHO;
+
     for(aux=head; aux!= NULL; aux=aux->next){
       if(aux->next==NULL){
         aux->next = new;
@@ -256,3 +250,4 @@ photolist *InsertPhotoEnd(photolist *head, uint32_t new_id_photo, char * new_fil
 uint32_t GetID(photolist *head){
   return head->id_photo;
 }
+

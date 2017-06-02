@@ -20,6 +20,8 @@
 ////////////////////////////////////////////////////////////////////////////////
 /*Used sockets in the server must be declared as global variables to be closed in
   the sigaction function*/
+int npeers=0;
+peerlist *genlist;  //Vector that will keeps the existing peers
 
 int npeers=0;
 peerlist *genlist;  //Vector that will keeps the existing peers
@@ -32,13 +34,13 @@ int sock_gateway_fd;     //fd for communicating with gateway
 struct sockaddr_in gateway_addr; //for communicating with gateway
 message m;                       //struct for communicating with gateway
 
-
 struct sockaddr_in server_addr;
 
 int client_count = 0;   //number of active clients
 struct sigaction *act;  //sigaction handler
 
 photolist *head;  //Picture list head
+
 
 int nbytes; //number of bytes read or sent
 
@@ -67,6 +69,8 @@ int main (){
   struct sockaddr_in client_addr;
 
   struct sockaddr_in local_addr;
+
+  socklen_t addrlen;
 
   socklen_t addrlen;
 
@@ -149,7 +153,7 @@ int main (){
 
     //Initializing photo list
     head = InitPhotoList();
-    /*// Getting photos and keywords from a peer
+    // Getting photos and keywords from a peer
     pic_info broad;
     broad.message_type = 2000; //Message type for a new server
     server_addr.sin_family = AF_INET;
@@ -180,42 +184,83 @@ int main (){
     }
     printf("PhotoSize: %d\n", photosize);
     //Receber lista de photos
-    photolist *photovector = (photolist *)malloc(sizeof(photolist)*photosize);
-    buff = (char *) malloc(sizeof(photolist)*photosize);
-    nbytes = recv(sock_fd_server, buff, sizeof(photolist)*photosize, 0);
-    if(nbytes == -1){
-      perror("Reciving");
-      exit(-1);
-    }
 
-    memcpy(photovector, buff, sizeof(photolist)*photosize);
+    if(photosize != 0){
 
-    photolist *aux;
-    aux = head;
-    for(int i=0; i<photosize; i++){
-      printf("Inserting photos\n");
-      head = NewPhoto(head, photovector[i].id_photo, photovector[i].file_name);
-    }
-    PrintPhotoList(head);
-    printf("Photos Inserted\n");
-    int keywordsize;
-    keyword *keywordvector;
-    for(aux = head; aux!=NULL; aux=aux->next){
-      keywordsize = 0;
-      nbytes = recv(sock_fd_server, &keywordsize, sizeof(keywordsize), 0);
+      int w= 0;
+
+      buff = (char *) malloc(sizeof(photolist)*photosize);
+      nbytes = recv(sock_fd_server, buff, sizeof(photolist)*photosize, 0);
       if(nbytes == -1){
         perror("Reciving");
+        exit(-1);
       }
-      keywordvector = malloc(sizeof(keyword)*keywordsize);
-      buff = (char *) malloc(sizeof(keyword)*keywordsize);
-      recv(sock_fd_server, buff, sizeof(keyword)*keywordsize, 0);
-      memcpy(keywordvector, buff, sizeof(keyword)*keywordsize);
-      for(int i=0; i<keywordsize; i++){
-        NewKeyWord(aux->key_head, keywordvector[i].keyword_name);
+      photolist testlist[photosize];
+      memcpy(testlist, buff, sizeof(photolist)*photosize);
+
+      printf("id_photo: %u\n", testlist[0].id_photo);
+      printf("file_name: %s\n", testlist[0].file_name);
+
+      photolist *aux;
+      aux = head;
+      for(int i=0; i<photosize; i++){
+        printf("Inserting photos\n");
+        head = InsertPhotoEnd(head, testlist[i].id_photo, testlist[i].file_name);
+      }
+
+      printf("Photos Inserted\n");
+      int keywordsize=0;
+      keyword *keywordvector;
+      keyword *ke;
+      BICHO;
+      for(aux = head; aux!=NULL; aux=aux->next){
+        nbytes = recv(sock_fd_server, &keywordsize, sizeof(keywordsize), 0);
+        if(nbytes == -1){
+          perror("Reciving");
+        }
+        printf("Keywordsize: %d\n", keywordsize);
+        if(keywordsize == 0)
+          break;
+
+        //Getting new keyword to add to photo
+        keywordvector = malloc(sizeof(keyword)*keywordsize);
+        buff = (char *) malloc(sizeof(keyword)*keywordsize);
+        recv(sock_fd_server, buff, sizeof(keyword)*keywordsize, 0);
+        memcpy(keywordvector, buff, sizeof(keyword)*keywordsize);
+        printf("Keyword: %s\n",keywordvector[w].keyword_name);
+        w++;
+        for(int i=0; i<keywordsize; i++){
+          ke = GetKeyHead(aux);
+          ke = NewKeyWord(ke, keywordvector[i].keyword_name);
+          Adding(aux,ke);
+        }
+      }
+
+      //Reciving pictures
+      for(int i =0; i<photosize; i++){
+        uint32_t id;
+        recv(sock_fd_server, &id, sizeof(id), 0);
+        //Receiving size of photo
+        long pic_size;
+        nbytes=recv(sock_fd_server, &pic_size, sizeof(pic_size), 0);
+        if(nbytes==-1){
+          perror("Receiving");
+          exit(-1);
+        }
+        char name[20];
+        sprintf(name,"%u", id);
+        //Reciving byte array
+        FILE *picture;
+        char p_array[pic_size];
+        recv(sock_fd_server, p_array, pic_size, 0);
+        //Reconstructing byte array
+        picture = fopen(name, "w");
+        fwrite(p_array, 1, sizeof(p_array), picture);
+        fclose(picture);
       }
     }
 
-    close(sock_fd_server);*/
+    close(sock_fd_server);
     }else{
       printf("No other peers exist at the moment\n");
       //Initializing photo list
@@ -335,7 +380,8 @@ void *cli_com(void *new_cli_sock){
         break;
       }
 
-      ///////////////////////////////////////////////////////////////NEW peer connected protocol
+      /////////////////////////////END OF GET PHOTO PROOCOL
+      //NEw peer connected protocol
       case 19:
       {
         peer_head = NewPeer(peer_head, pi.pic_name, pi.size);
@@ -356,6 +402,7 @@ void *cli_com(void *new_cli_sock){
       ///Enviar lista de fotos
       case 2000:
       {
+        client_count--;
         photolist *aux;
         int photocount = 0;
 
@@ -371,8 +418,7 @@ void *cli_com(void *new_cli_sock){
         aux = head;
         photolist p_list[photocount];
         for(int i = 0; i<photocount; i++){
-          p_list[i].id_photo = aux->id_photo;
-          p_list[i].file_name = aux->file_name;
+          p_list[i]=*aux;
           p_list[i].key_head = NULL;
           aux = aux->next;
         }
@@ -380,13 +426,13 @@ void *cli_com(void *new_cli_sock){
         //Sending list of photos to the new peer
         buff = malloc(sizeof(photolist)*photocount);
         memcpy(buff, p_list, sizeof(photolist)*photocount);
-        printf("Merda: %s\n", buff);
 
         nbytes = send(fd, buff, sizeof(photolist)*photocount, 0);
         if(nbytes==-1){
           perror("Sending");
         }
-        BICHO;
+
+
         //Filling keyword vector with photo keyword
         keyword *k;
         int keycount;
@@ -395,15 +441,21 @@ void *cli_com(void *new_cli_sock){
           keycount = 0;
           for(k=aux->key_head; k!=NULL; k=k->next_key)
             keycount++;
+          printf("Keycount: %d\n", keycount);
+          //Breaking if no keywords exist
           nbytes = send(fd, &keycount, sizeof(keycount), 0);
           if(nbytes==-1){
             perror("Sending");
           }
+          BICHO;
+          if(keycount == 0)
+            break;
           k_vector = malloc(sizeof(keyword)*keycount);
           k = aux->key_head;
           for(int i=0; i<keycount; i++){
             k_vector[i]=*k;
             k = k->next_key;
+            printf("Keywords: %s\n",k_vector[i].keyword_name);
           }
           //Sending photo keyword list to new peer
           buff = (char *) malloc(sizeof(keyword)*keycount);
@@ -414,8 +466,8 @@ void *cli_com(void *new_cli_sock){
             perror("Sending");
           }
         }
-
-        free(k_vector);
+        if(keycount != 0)
+          free(k_vector);
 
         for(aux = head; aux!=NULL; aux= aux->next){
 
@@ -429,6 +481,7 @@ void *cli_com(void *new_cli_sock){
             perror("Filename");
             pic_size = -1;
           }
+          nbytes = send(fd, &aux->id_photo, sizeof(uint32_t), 0);
           //Searching the beggining and end of the picture
           fseek(picture, 0, SEEK_END);
           pic_size = ftell(picture);
