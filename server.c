@@ -388,7 +388,9 @@ void Get_picture(int fd, pic_info pi){
     }
     //Searching the beggining and end of the picture
     fseek(picture, 0, SEEK_END);
-    pic_size = ftell(picture);
+    if(pic_size != -1){
+      pic_size = ftell(picture);
+    }
     rewind(picture);
     //Sending picture size to client_addr
     int nbytes = send(fd, &pic_size, sizeof(pic_size), 0);

@@ -294,26 +294,22 @@ int gallery_get_photo(int peer_socket, uint32_t id_photo, char *file_name){
   get_photo.message_type = 7;
   get_photo.size = id_photo;
 
-  printf("******************DEBUG1****************\n");
   //Sending info of the message type, and the id of the desired Photo
   char *buff = (char *) malloc(sizeof(get_photo));
-
-  printf("******************DEBUG2****************\n");
   memcpy(buff, &get_photo, sizeof(get_photo));
-
-  printf("******************DEBUG3****************\n");
   int nbytes = send(peer_socket, buff, sizeof(get_photo), 0);
   if(nbytes == -1){
     perror("Sending");
     return -1;
   }
   //Reciving picture size
-  long pic_size;
+  long pic_size=0;
   nbytes = recv(peer_socket, &pic_size, sizeof(pic_size), 0);
   if(nbytes == -1){
     perror("Reciving");
     return -1;
   }
+  printf("%lu\n", pic_size);
   if(pic_size <= 0){
     return pic_size;
   }else{

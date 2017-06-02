@@ -56,7 +56,7 @@ int main (){
 
     printf("Connection with Peer sucessefully established!\n");
 
-    uint32_t photo_add;
+    uint32_t photo_id;
     char image_name[MESSAGE_LEN];//Nome do ficheiro a enviar
     char input [MESSAGE_LEN];
     char command;
@@ -72,11 +72,10 @@ int main (){
     printf("Command: ");
 
     int k;
-    int key_id;
     char *k_word;
     command ='\0';
     while(end==1){
-      key_id =0;
+      photo_id =0;
       //Getting input command
       fgets(input, MESSAGE_LEN, stdin);
       sscanf(input,"%c",&command);
@@ -88,11 +87,11 @@ int main (){
         printf("Input the name of the image you want to send\nImage name: ");
         fgets(input, MESSAGE_LEN, stdin);
         sscanf(input,"%s",image_name);
-        photo_add = gallery_add_photo(peer_socket, image_name);
-        if(photo_add == 0){
+        photo_id = gallery_add_photo(peer_socket, image_name);
+        if(photo_id == 0){
           printf("Could not find specified file/Communication problems with peer\n\n");
         }else{
-          printf("Picture ID: %d\n\n",photo_add);
+          printf("Picture ID: %u\n\n",photo_id);
         }
         break;
       }
@@ -118,8 +117,8 @@ int main (){
         sscanf(input,"%s",k_word);
         printf("Insert the ID of the photo to add the keyword: ");
         fgets(input, MESSAGE_LEN, stdin);
-        sscanf(input,"%d",&key_id);//  "%"PRIu32
-        k = gallery_add_keyword(peer_socket, key_id, k_word);
+        sscanf(input,"%u",&photo_id);//  "%"PRIu32
+        k = gallery_add_keyword(peer_socket, photo_id, k_word);
         if(k == 1)
           printf("Keyword sucessefully Added!\n");
         if(k == 0)
@@ -133,7 +132,7 @@ int main (){
       {
         printf("\nInsert the ID of the photo you wish to know the name: ");
         fgets(input, MESSAGE_LEN, stdin);
-        sscanf(input,"%d",&key_id);//  "%"PRIu32
+        sscanf(input,"%u",&photo_id);//  "%"PRIu32
 
         char **photo_name;
         char * file_name;
@@ -141,7 +140,7 @@ int main (){
         file_name =(char *) malloc(MESSAGE_LEN);
         photo_name=&file_name;
 
-        k=gallery_get_photo_name(peer_socket, key_id, photo_name);
+        k=gallery_get_photo_name(peer_socket, photo_id, photo_name);
 
         if(k == 1)
           printf("Photo name is %s \n", file_name);
@@ -159,9 +158,9 @@ int main (){
       {
         printf("\nInsert the ID of the photo to delete: ");
         fgets(input, MESSAGE_LEN, stdin);
-        sscanf(input,"%d",&key_id);//  "%"PRIu32
+        sscanf(input,"%u",&photo_id);//  "%"PRIu32
 
-        k=gallery_delete_photo(peer_socket, key_id);
+        k=gallery_delete_photo(peer_socket, photo_id);
 
         if(k == 1)
           printf("Photo sucessefully deleted!\n");
@@ -180,14 +179,16 @@ int main (){
         k_word = malloc(sizeof(input)*sizeof(char));
         sscanf(input, "%s", k_word);
         if((k=gallery_search_photo(peer_socket, k_word, &id_photo)) != 0 ){
-          printf("Photos with '%s' as keyword:\n",k_word);
+          printf("Photos with '%s' keyword: ",k_word);
           for(int i=0; i<k; i++){
-            printf("\t");
-            printf("%"PRIu32"\n", id_photo[i]);
+            printf("%"PRIu32, id_photo[i]);
+            if(i+1<k)
+              printf(", ");
           }
+          printf("\n");
           printf("Number of photos: %d\n\n", k);
         }else{ if(k ==0)
-                  printf("No picture exists with thet inserted keyword\n\n");
+                  printf("No picture exists with the inserted keyword\n\n");
                 if(k == -1)
                   printf("ERROR: Invalid Arguments or Connectiong Problem\n\n");
             }
@@ -198,13 +199,13 @@ int main (){
         //Getting necessary information for th function
         printf("Insert the ID of the file you want to download: ");
         fgets(input, MESSAGE_LEN, stdin);
-        sscanf(input,"%d",&key_id);//  "%"PRIu32 ///////////HELP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!11111
+        sscanf(input,"%u",&photo_id);
         printf("Insert the name you want to give the photo: ");
         fgets(input, MESSAGE_LEN, stdin);
         k_word = malloc(sizeof(input)*sizeof(char));
         sscanf(input, "%s", k_word);
         //Getting photo
-        int pic = gallery_get_photo(peer_socket, key_id, k_word);
+        int pic = gallery_get_photo(peer_socket, photo_id, k_word);
         if(pic == 0){
           printf("There is no photo with the inserted ID\n\n");
           break;
