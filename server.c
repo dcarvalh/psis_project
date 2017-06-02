@@ -50,7 +50,7 @@ struct timeval  timeout;   //timeout value
 void *cli_com(void  *new_cli_sock);
 static void handle(int sig, siginfo_t *siginfo,void *context);
 
-void Add_picture(int fd, pic_info pi);
+void Add_picture(int fd, pic_info pi, int flags);
 void Add_keyword(int fd, pic_info pi);
 void Search_picture(int fd, pic_info pi);
 void Delete_picture(int fd, pic_info pi);
@@ -226,7 +226,6 @@ int main (int argc, char *argv[]){
 
     if(photosize != 0){
 
-
       buff = (char *) malloc(sizeof(photolist)*photosize);
       nbytes = recv(sock_fd_server, buff, sizeof(photolist)*photosize, 0);
       if(nbytes == -1){
@@ -262,14 +261,31 @@ int main (int argc, char *argv[]){
         //Getting new keyword to add to photo
         keywordvector = malloc(sizeof(keyword)*keywordsize);
         buff = (char *) malloc(sizeof(keyword)*keywordsize);
-        recv(sock_fd_server, buff, sizeof(keyword)*keywordsize, 0);
+        nbytes=recv_all(sock_fd_server, buff, sizeof(keyword)*keywordsize, 0);
+        if(nbytes == -2)
+          perror("Overflow");
         memcpy(keywordvector, buff, sizeof(keyword)*keywordsize);
+        free(buff);
         for(int i=0; i<keywordsize; i++){
           NewKeyWord(aux, keywordvector[i].keyword_name);
         }
-      }
     }
 
+/*********    Photo syncronazation part that has a bug when more than a photo is in the lis
+    pic_info pic;
+    int pic_size;
+    photolist *aux2;
+    for(aux2 = head; aux2!=NULL; aux2 =aux2->next){
+      pic.size = 0;
+      nbytes= recv(sock_fd_server, &pic_size, sizeof(int), 0);
+
+      PrintPhotoList(aux2);
+      pic.size = pic_size;
+      sprintf(pic.pic_name, "%u" ,aux2->id_photo);
+
+      Add_picture(sock_fd_server, pic, 0);
+    }*/
+    }
     close(sock_fd_server);
     }else{
       printf("No other peers exist at the moment\n");
@@ -358,7 +374,7 @@ void *cli_com(void *new_cli_sock){
 
       case 2:
       {
-        Add_picture(fd, pi);
+        Add_picture(fd, pi,1);
         PrintPhotoList(head);
         break;
       }
@@ -423,71 +439,78 @@ void *cli_com(void *new_cli_sock){
         for(aux = head; aux != NULL; aux = aux->next){
             photocount++;
         }
-        int nbytes = send(fd, &photocount, sizeof(photocount), 0);
+        int nbytes = send_all(fd, &photocount, sizeof(photocount), 0);
         if(nbytes==-1){
           perror("Sending");
         }
 
-        //Filling photo list vector with the photo data
-        aux = head;
-        photolist p_list[photocount];
-        for(int i = 0; i<photocount; i++){
-          p_list[i]=*aux;
-          p_list[i].key_head = NULL;
-          aux = aux->next;
-        }
+        if(photocount>0){
+          //Filling photo list vector with the photo data
+          aux = head;
+          photolist p_list[photocount];
+          for(int i = 0; i<photocount; i++){
+            p_list[i]=*aux;
+            p_list[i].key_head = NULL;
+            aux = aux->next;
+          }
 
-        //Sending list of photos to the new peer
-        buff = malloc(sizeof(photolist)*photocount);
-        memcpy(buff, p_list, sizeof(photolist)*photocount);
+          //Sending list of photos to the new peer
+          buff = malloc(sizeof(photolist)*photocount);
+          memcpy(buff, p_list, sizeof(photolist)*photocount);
 
-        nbytes = send(fd, buff, sizeof(photolist)*photocount, 0);
-        if(nbytes==-1){
-          perror("Sending");
-        }
-
-
-        //Filling keyword vector with photo keyword
-        keyword *k;
-        int keycount;
-        keyword *k_vector;
-        for(aux = head; aux != NULL; aux=aux->next){
-          keycount = 0;
-          for(k=aux->key_head; k!=NULL; k=k->next_key)
-            keycount++;
-          printf("Keycount: %d\n", keycount);
-          //Breaking if no keywords exist
-          nbytes = send(fd, &keycount, sizeof(keycount), 0);
+          nbytes = send(fd, buff, sizeof(photolist)*photocount, 0);
           if(nbytes==-1){
             perror("Sending");
           }
+          
+          free(buff);
 
-          if(keycount == 0)
-            break;
-          k_vector = malloc(sizeof(keyword)*keycount);
-          k = aux->key_head;
-          for(int i=0; i<keycount; i++){
-            k_vector[i]=*k;
-            k = k->next_key;
-            printf("Keywords: %s\n",k_vector[i].keyword_name);
+          //Filling keyword vector with photo keyword
+          keyword *k;
+          int keycount;
+          keyword *k_vector;
+          for(aux = head; aux != NULL; aux=aux->next){
+            keycount = 0;
+            for(k=aux->key_head; k!=NULL; k=k->next_key)
+              keycount++;
+            printf("Keycount: %d\n", keycount);
+            //Breaking if no keywords exist
+            nbytes = send(fd, &keycount, sizeof(keycount), 0);
+            if(nbytes==-1){
+              perror("Sending");
+            }
+
+            if(keycount == 0)
+              break;
+            k_vector = malloc(sizeof(keyword)*keycount);
+            k = aux->key_head;
+            for(int i=0; i<keycount; i++){
+              k_vector[i]=*k;
+              k = k->next_key;
+              printf("Keywords: %s\n",k_vector[i].keyword_name);
+            }
+            //Sending photo keyword list to new peer
+            buff = (char *) malloc(sizeof(keyword)*keycount);
+            memcpy(buff, k_vector, sizeof(photolist)*photocount);
+
+            nbytes = send_all(fd, buff, sizeof(keyword)*keycount, 0);
+            if(nbytes==-1){
+              perror("Sending");
+            }
+            free(buff);
           }
-          //Sending photo keyword list to new peer
-          buff = (char *) malloc(sizeof(keyword)*keycount);
-          memcpy(buff, k_vector, sizeof(photolist)*photocount);
+          if(keycount != 0)
+            free(k_vector);
 
-          nbytes = send(fd, buff, sizeof(keyword)*keycount, 0);
-          if(nbytes==-1){
-            perror("Sending");
-          }
-        }
-        if(keycount != 0)
-          free(k_vector);
+          pic_info photo_stuff;
+          for(aux = head; aux!=NULL; aux= aux->next){
+              photo_stuff.size = aux->id_photo;
+              printf("Photo ID: %u\n",photo_stuff.size);
+              Get_picture(fd, photo_stuff);
 
-        pic_info photo_stuff;
-        for(aux = head; aux!=NULL; aux= aux->next){
-            photo_stuff.size=aux->id_photo;
-            Get_picture(fd,photo_stuff);
-        }//END FOR
+          }//END FOR
+      }
+
         pthread_exit(NULL);
         break;
       }
@@ -506,29 +529,40 @@ void *cli_com(void *new_cli_sock){
 
 ///////////////////////////////// CASES ////////////////////////////////////////
 
-void Add_picture(int fd, pic_info pi){
+void Add_picture(int fd, pic_info pi, int flags){
   uint32_t pic_id;
   pic_id = 0;
   char server_img[1000];
   char p_array[pi.size];
   FILE *image;
-  printf("Picture Size: %d\nPicture Name: %s\n", pi.size, pi.pic_name );
-  clock_t current = clock();
-  pic_id = getpid() + (current*10000);
-  sprintf(server_img, "%d", pic_id);
+  printf("\n\nPicture Size: %d\nPicture Name: %s\n", pi.size, pi.pic_name );
+  if(flags == 1){
+    clock_t current = clock();
+    pic_id = getpid() + (current*10000);
+    sprintf(server_img, "%d", pic_id);
+  }else{
+    strcpy(server_img, pi.pic_name);
+  }
   //Recive byte image array
   printf("Reading Picture Byte Array\n");
-  nbytes = recv_all(fd, p_array, pi.size, 0);
+  nbytes = recv_all(fd, p_array, sizeof(char)*pi.size, 0);
   if(nbytes == -1){
     perror("Reciving");
     exit(-1);
   }
+  if(nbytes == -2){
+    perror("Overflow");
+    exit(-1);
+  }
+  printf("Nbytes: %d", nbytes);
   //Adding photo to the photo list
-  head = NewPhoto(head, pic_id, pi.pic_name);
+  if(flags == 1){
+    head = NewPhoto(head, pic_id, pi.pic_name);
+  }
   //Reconstruct byte array into picture
   printf("Converting Byte Array to Picture\n");
   image = fopen( server_img, "wb");
-  fwrite(p_array, pi.size, 1, image);
+  fwrite(p_array, 1, pi.size, image);
   fclose(image);
   nbytes = send(fd, &pic_id, sizeof(pic_id), 0);
 
@@ -645,10 +679,11 @@ void Get_picture(int fd, pic_info pi){
   //Verifying if the requested picture exisits
   if((photo = GetPhoto(head, pi.size))!=NULL){
     FILE *picture;
-    long pic_size;
+    long pic_size=0;
     //Reading stored picture
     char name[15];
     sprintf(name, "%"PRIu32, pi.size);
+    printf("Photo: %s\n",name);
     picture=fopen(name, "rb");
     if(picture == NULL){
       perror("Filename");
@@ -661,23 +696,27 @@ void Get_picture(int fd, pic_info pi){
     }
     rewind(picture);
     //Sending picture size to client_addr
-
+    printf("pic_size: %ld\n", pic_size);
     int nbytes = send(fd, &pic_size, sizeof(pic_size), 0);
     if(nbytes == -1){
       perror("Sending");
       exit(-1);
     }
 
-    printf("Sizeof: %lu", pic_size);
+    printf("Sizeof: %lu\n", pic_size);
     //Sending Picture as byte array
     char send_buffer[pic_size];
     size_t fr;
     while(!feof(picture)){  //Reading file, while it is not the end of file
       fr=fread(send_buffer , pic_size, 1, picture);
       if(fr>0){
-        nbytes = send_all(fd, send_buffer, sizeof(send_buffer), 0);
+        nbytes = send_all(fd, send_buffer, pic_size*sizeof(char), 0);
         if(nbytes == -1){
           perror("Sending:");
+          exit(0);
+        }
+        if(nbytes == -2){
+          perror("Overflow:");
           exit(0);
         }
       }
@@ -693,7 +732,7 @@ void Get_picture(int fd, pic_info pi){
       exit(-1);
     }
   }
-
+  BICHO;
   return;
 }
 
