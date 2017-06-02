@@ -158,7 +158,12 @@ void *peer_com(){
   int nbytes;                    //Nuber of bytes recived or sent
   message m ;                    //Struture that will handle the messages
   char * buff;
+  int npeers;
+
+  socklen_t size_addr;
+
   struct sockaddr_in local_addr; //Gateway's adress
+  struct sockaddr_in peer_addr; //Client Adress
 
   //Creating Datagram Socket that will comunicate with the server
   sock_fd_peer =socket(AF_INET, SOCK_DGRAM, 0);
@@ -179,11 +184,13 @@ void *peer_com(){
     exit(-1);
   }
 
+  size_addr = sizeof(peer_addr);
   //Cicle that runs the gateway's Peer UPD connection
   while(1){
 
     buff =  (char*)malloc(sizeof (m));
-    nbytes = recv(sock_fd_peer, buff ,sizeof (message), 0);
+    nbytes = recvfrom(sock_fd_peer, buff ,sizeof (message), 0,
+                      (struct sockaddr *) &peer_addr, &size_addr);
     if(nbytes == -1){
       perror("Reciving");
       exit(-1);
@@ -200,6 +207,35 @@ void *peer_com(){
       printf("%s \n", m.addr);
       printf("%d \n\n", m.port);
 
+//Sending amount of currently connected Peers
+      npeers = CountPeers(head);
+      nbytes = sendto(sock_fd_peer, &npeers, sizeof(npeers), 0,
+                      (struct sockaddr *) &peer_addr, size_addr);
+      if(nbytes == -1){
+        perror("Sending");
+      }
+      if(npeers != 0){
+        //Sending byte array with the peer list information
+        peerlist list[npeers];
+        peerlist *aux = head;
+        printf("Nº de peers: %d\n", npeers);
+        for(int i=0; i<npeers; i++){
+          list[i]=*aux;
+          pthread_mutex_lock(&mutex);
+          aux=NextPeer(aux);
+          pthread_mutex_unlock(&mutex);
+        }
+
+        buff = (char *) malloc(sizeof(peerlist)*npeers);
+        memcpy(buff, list, sizeof(peerlist)*npeers);
+
+        nbytes = sendto(sock_fd_peer, buff, sizeof(peerlist)*npeers, 0,
+                              (struct sockaddr *) &peer_addr, size_addr);
+        if(nbytes == -1){
+          perror("Sending");
+        }
+    }
+      //Send message to all other peers?
       pthread_mutex_lock(&mutex);
       //Insertion of the Peer in the peer list
       head=NewPeer(head, m.addr, m.port);

@@ -2,24 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include "img_list.h"
-
+#include "message.h"
 #include <unistd.h>
 
 
 #include <inttypes.h>
-
-
-struct keyword{    //List that will store keyword information
-  char *keyword_name;
-  struct keyword * next_key;
-};
-
-struct photo{    //List that will store photo information
-  uint32_t id_photo;
-  char *file_name;
-  struct keyword * key_head;
-  struct photo * next;
-};
 
 photolist * InitPhotoList(void)
 {
@@ -34,7 +21,6 @@ photolist * NewPhoto(photolist * head, uint32_t new_id_photo, char * new_file_na
 	photolist * new;
   new = (photolist *) malloc(sizeof(photolist));
 
-  new->file_name = malloc(strlen(new_file_name)*sizeof(char));
   strcpy(new->file_name, new_file_name);
   new->id_photo = new_id_photo;
   new->key_head = NULL;
@@ -93,7 +79,7 @@ void FreePhotoList(photolist * head){
 
   while(aux != NULL){
     aux=head->next;
-    free(head->file_name);
+
     sprintf(str, "%d", head->id_photo);
     unlink(str);
     FreeKeywords(head->key_head);
@@ -118,7 +104,6 @@ keyword *NewKeyWord(keyword *key_head, char *new_key_name){
   keyword *new;
   new = (keyword *) malloc (sizeof(keyword));
 
-  new->keyword_name = malloc(strlen(new_key_name)*sizeof(char));
   strcpy(new->keyword_name, new_key_name);
 
   if(key_head == NULL){
@@ -151,7 +136,6 @@ void Adding(photolist *aux, keyword *k_head){
   return;
 }
 
-
 int SearchPhotosbyKeyWords(photolist *head, char *kword, uint32_t *photos){
   photolist *aux;
   int n = 0;
@@ -182,7 +166,6 @@ void FreeKeywords(keyword * head){
 
   while(aux != NULL){
     aux=head->next_key;
-    free(head->keyword_name);
     free(head);
     head=aux;
   }
@@ -229,4 +212,29 @@ photolist * DeletePhoto(photolist *head, photolist *rem){
 
 char *GetPhotoName(photolist *head){
   return head->file_name;
+}
+
+photolist *InsertPhotoEnd(photolist *head, uint32_t new_id_photo, char * new_file_name){
+
+  photolist *aux;
+  photolist * new;
+  new = (photolist *) malloc(sizeof(photolist));
+
+  strcpy(new->file_name, new_file_name);
+  new->id_photo = new_id_photo;
+  new->key_head = NULL;
+
+  if(head == NULL){
+    new->next = NULL;
+    head = new;
+    return head;
+  }else{
+    for(aux=head; aux!= NULL; aux=aux->next){
+      if(aux->next==NULL){
+        aux->next = new;
+        break;
+      }
+    }
+  }
+  return head;
 }

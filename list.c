@@ -3,12 +3,6 @@
 #include <string.h>
 #include "list.h"
 
-struct list{    //List that will store server information
-  char ip[MESSAGE_LEN];
-  int port;
-  struct list *next;
-};
-
 peerlist * InitList()
 {
   peerlist * new;
