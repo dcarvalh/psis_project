@@ -135,6 +135,8 @@ int main (){
 
   peerlist list[npeers];
   genlist = list;
+
+  printf("Npeers : %d\n", npeers);
   if(npeers != 0){
     buff = (char *) malloc(sizeof(peerlist)*npeers);
     nbytes = recv(sock_gateway_fd, buff, sizeof(peerlist)*npeers,0);
@@ -144,6 +146,7 @@ int main (){
     }
     memcpy(list, buff, sizeof(peerlist)*npeers);
     //Broadcasting new peer existence
+
     Broadcast(19, genlist, npeers);
 
     //Initializing photo list
@@ -177,7 +180,6 @@ int main (){
       perror("Reciving");
       exit(-1);
     }
-    printf("PhotoSize: %d\n", photosize);
     //Receber lista de photos
 
     if(photosize != 0){
@@ -206,7 +208,7 @@ int main (){
       printf("Photos Inserted\n");
       int keywordsize=0;
       keyword *keywordvector;
-      BICHO;
+
       for(aux = head; aux!=NULL; aux=aux->next){
         nbytes = recv(sock_fd_server, &keywordsize, sizeof(keywordsize), 0);
         if(nbytes == -1){
@@ -326,6 +328,7 @@ void *cli_com(void *new_cli_sock){
     memcpy(&pi, buff, sizeof(pi));
     free(buff);
 
+    printf("Message_type: %d\n", pi.message_type);
 
     switch (pi.message_type){
       //Exiting protocol
@@ -376,10 +379,11 @@ void *cli_com(void *new_cli_sock){
       //NEw peer connected protocol
       case 19:
       {
+        BICHO;
         peer_head = NewPeer(peer_head, pi.pic_name, pi.size);
         PrintList(peer_head);
         client_count--;
-        pthread_exit (NULL);
+        pthread_exit(NULL);
         break;
       }
       //Peer disconnected
@@ -388,7 +392,8 @@ void *cli_com(void *new_cli_sock){
         peer_head = RemovePeer(peer_head, pi.pic_name, pi.size);
         client_count--;
         PrintList(peer_head);
-        pthread_exit (NULL);
+        pthread_exit(NULL);
+        break;
       }
 
       ///Enviar lista de fotos
@@ -439,7 +444,7 @@ void *cli_com(void *new_cli_sock){
           if(nbytes==-1){
             perror("Sending");
           }
-          BICHO;
+
           if(keycount == 0)
             break;
           k_vector = malloc(sizeof(keyword)*keycount);
@@ -725,9 +730,9 @@ static void handle(int sig, siginfo_t *siginfo,void *context){
   //Sending disconect message to gateway_addr
   sendto(sock_gateway_fd, buff, sizeof(m), 0,
                 	  (const struct sockaddr *) &gateway_addr,sizeof(gateway_addr));
+                    
 
   Broadcast(-19, genlist, npeers);
-
   close(new_cli_sock);
   close(sock_TCP);
   close(sock_gateway_fd);
@@ -747,6 +752,7 @@ void Broadcast(int messagetype, peerlist *peerlist, int npeers){
   broad.size = m.port;
   server_addr.sin_family = AF_INET;
 
+  printf("Message Type: %d\n", broad.message_type);
   //Placing Peers in list and sending them new peer connection message
   for(int i=0; i<npeers; i++){
       int sock_fd_server= socket(AF_INET, SOCK_STREAM, 0);
@@ -754,6 +760,7 @@ void Broadcast(int messagetype, peerlist *peerlist, int npeers){
         perror("Socket\n");
         exit(-1);
       }
+    if(broad.message_type == 19)
       peer_head = NewPeer(peer_head,genlist[i].ip,genlist[i].port);
       server_addr.sin_port= htons(GivePort(peer_head));
       inet_aton(GiveIP(peer_head), &server_addr.sin_addr);
@@ -770,4 +777,5 @@ void Broadcast(int messagetype, peerlist *peerlist, int npeers){
       }
       close(sock_fd_server);
   }
+  PrintList(peer_head);
 }
