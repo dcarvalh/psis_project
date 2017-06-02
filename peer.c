@@ -119,8 +119,6 @@ int main (int argc, char *argv[]){
   gateway_addr.sin_port = htons(gate_port);
   gateway_addr.sin_addr.s_addr=inet_addr(gate_ip);
 
-  printf("Datagram socket created\n");
-
 //Filling uo the structure to sent the Gateway
   m.port=ntohs(local_addr.sin_port);
   m.message_type= 1;
@@ -139,12 +137,9 @@ int main (int argc, char *argv[]){
     exit(-1);
   }
 
-  printf("\nSent to gateway:\n");
-  printf("%d \n", m.message_type);
-  printf("%d \n\n", m.port);
+  printf("\nConnecting to gateway through port %d \n\n", m.port);
 
   free(buff);
-  printf("bytes sent: %d \n", nbytes);
 
   //////////////////////////////////Replication///////////////////////////////////////////////////////
   //Recive number of current existing peers
@@ -177,7 +172,6 @@ int main (int argc, char *argv[]){
   peerlist list[npeers];
   genlist = list;
 
-  printf("Npeers : %d\n", npeers);
   if(npeers != 0){
     buff = (char *) malloc(sizeof(peerlist)*npeers);
     nbytes = recv(sock_gateway_fd, buff, sizeof(peerlist)*npeers,0);
@@ -313,6 +307,10 @@ int main (int argc, char *argv[]){
     exit(-1);
   }
 
+  struct timespec tim, tim2;
+  tim.tv_sec = 0;
+  tim.tv_nsec = 50000000;
+
   while(1){
     /*Listening for new clients connecting(in case more than one connects at the
                                             same time, creates a queue)*/
@@ -321,8 +319,7 @@ int main (int argc, char *argv[]){
     //Accepting and creating new socket for the client
     new_cli_sock= accept(sock_TCP, (struct sockaddr *) & client_addr, &addrlen);
     client_count++;
-    printf("Client Acepted!\nClient Count:%d\n\n", client_count);
-
+    printf("Client Acepted! Client Count:%d \n", client_count);
     t_args= new_cli_sock;
     //Creation of the thread that will comunicate with the client
     iret_c = pthread_create(&thread_c, NULL, cli_com, &t_args);
@@ -330,6 +327,7 @@ int main (int argc, char *argv[]){
       perror("Client thread:");
       exit(-1);
     }
+    nanosleep(&tim , &tim2);
   }
 
 }//END OF MAIN
@@ -357,8 +355,6 @@ void *cli_com(void *new_cli_sock){
     }
     memcpy(&pi, buff, sizeof(pi));
     free(buff);
-
-    printf("Message_type: %d\n", pi.message_type);
 
     switch (pi.message_type){
       //Exiting protocol
@@ -410,7 +406,6 @@ void *cli_com(void *new_cli_sock){
       //NEw peer connected protocol
       case 19:
       {
-        BICHO;
         peer_head = NewPeer(peer_head, pi.pic_name, pi.size);
         PrintList(peer_head);
         client_count--;
@@ -546,7 +541,6 @@ void Add_picture(int fd, pic_info pi, int flags){
     strcpy(server_img, pi.pic_name);
   }
   //Recive byte image array
-  printf("Reading Picture Byte Array\n");
   nbytes = recv_all(fd, p_array, sizeof(char)*pi.size, 0);
   if(nbytes == -1){
     perror("Reciving");
@@ -556,7 +550,7 @@ void Add_picture(int fd, pic_info pi, int flags){
     perror("Overflow");
     exit(-1);
   }
-  printf("Nbytes: %d", nbytes);
+
   //Adding photo to the photo list
   if(flags == 1){
     head = NewPhoto(head, pic_id, pi.pic_name);
@@ -773,7 +767,6 @@ void Broadcast(int messagetype, peerlist *peerlist, int npeers){
   broad.size = m.port;
   server_addr.sin_family = AF_INET;
 
-  printf("Message Type: %d\n", broad.message_type);
   //Placing Peers in list and sending them new peer connection message
   for(int i=0; i<npeers; i++){
       int sock_fd_server= socket(AF_INET, SOCK_STREAM, 0);
@@ -781,11 +774,11 @@ void Broadcast(int messagetype, peerlist *peerlist, int npeers){
         perror("Socket\n");
         exit(-1);
       }
-    if(broad.message_type == 19)
-      peer_head = NewPeer(peer_head,genlist[i].ip,genlist[i].port);
-      server_addr.sin_port= htons(GivePort(peer_head));
-      inet_aton(GiveIP(peer_head), &server_addr.sin_addr);
-      //Connecting to peer to anounce new peer existence
+      if(broad.message_type == 19)
+        peer_head = NewPeer(peer_head,genlist[i].ip,genlist[i].port);
+      server_addr.sin_port= htons(genlist[i].port);
+      inet_aton(genlist[i].ip, &server_addr.sin_addr);
+      //Connecting to peers
       if(connect(sock_fd_server, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1){
         perror("Connecting");
         exit(-1);

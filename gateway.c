@@ -234,7 +234,6 @@ void *peer_com(){
         //Sending byte array with the peer list information
         peerlist list[npeers];
         peerlist *aux = head;
-        printf("Nº de peers: %d\n", npeers);
         for(int i=0; i<npeers; i++){
           list[i]=*aux;
           pthread_mutex_lock(&mutex);
