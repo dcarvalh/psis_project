@@ -44,6 +44,7 @@ int nbytes; //number of bytes read or sent
 ////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////// HEADERS //////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////
+
 void *cli_com(void  *new_cli_sock);
 static void handle(int sig, siginfo_t *siginfo,void *context);
 
@@ -68,12 +69,12 @@ int main (){
   struct sockaddr_in local_addr;
 
   socklen_t addrlen;
+  addrlen = sizeof(client_addr);
 
   //Threads that will comunicate with the client
   pthread_t thread_c;
   int iret_c;
-  int *t_args;
-
+  int t_args;
 ////Sigaction Initialization
   act = malloc(sizeof(act));
   act->sa_sigaction = & handle;
@@ -121,6 +122,7 @@ int main (){
   nbytes = sendto(sock_gateway_fd, buff, sizeof(m), 0,
                 	  (const struct sockaddr *) &gateway_addr,sizeof(gateway_addr));
 
+  free(buff);
   printf("bytes sent: %d \n", nbytes);
 
   //////////////////////////////////Replication///////////////////////////////////////////////////////
@@ -146,7 +148,7 @@ int main (){
     }
     memcpy(list, buff, sizeof(peerlist)*npeers);
     //Broadcasting new peer existence
-
+    free(buff);
     Broadcast(19, genlist, npeers);
 
     //Initializing photo list
@@ -173,6 +175,7 @@ int main (){
     if(nbytes==-1){
       perror("Sending");
     }
+    free(buff);
     //Revice size of photo list
     int photosize=0;
     nbytes = recv(sock_fd_server, &photosize, sizeof(photosize), 0);
@@ -184,7 +187,6 @@ int main (){
 
     if(photosize != 0){
 
-      int w= 0;
 
       buff = (char *) malloc(sizeof(photolist)*photosize);
       nbytes = recv(sock_fd_server, buff, sizeof(photolist)*photosize, 0);
@@ -223,34 +225,55 @@ int main (){
         buff = (char *) malloc(sizeof(keyword)*keywordsize);
         recv(sock_fd_server, buff, sizeof(keyword)*keywordsize, 0);
         memcpy(keywordvector, buff, sizeof(keyword)*keywordsize);
-        printf("Keyword: %s\n",keywordvector[w].keyword_name);
-        w++;
         for(int i=0; i<keywordsize; i++){
           NewKeyWord(aux, keywordvector[i].keyword_name);
         }
       }
 
       //Reciving pictures
-      for(int i =0; i<photosize; i++){
-        uint32_t id;
-        recv(sock_fd_server, &id, sizeof(id), 0);
-        //Receiving size of photo
-        long pic_size;
-        nbytes=recv(sock_fd_server, &pic_size, sizeof(pic_size), 0);
-        if(nbytes==-1){
+      char server_img[100];
+      //char *p_array;
+      long photo_size=0;
+      int total_bytes;
+      for(aux = head; aux!=NULL; aux = aux->next){
+        total_bytes = 0;
+        FILE *image;
+        nbytes = recv(sock_fd_server, &photo_size, sizeof(int), 0);
+        if(nbytes == -1){
           perror("Receiving");
           exit(-1);
         }
-        char name[20];
-        sprintf(name,"%u", id);
-        //Reciving byte array
-        FILE *picture;
-        char p_array[pic_size];
-        recv(sock_fd_server, p_array, pic_size, 0);
-        //Reconstructing byte array
-        picture = fopen(name, "w");
-        fwrite(p_array, 1, sizeof(p_array), picture);
-        fclose(picture);
+        printf("Pic_size: %ld\n", photo_size);
+      /*
+        p_array = malloc(sizeof(char)*photo_size);
+        sprintf(server_img, "%u", aux->id_photo);
+        //Receive byte array of the image
+        recv(sock_fd_server, p_array, photo_size, 0);
+        //Reconstruct byte array into picture
+        image = fopen(server_img, "wb");
+        fwrite(p_array, photo_size, 1 ,image);
+        fclose(image);
+        free(p_array);
+        */
+        sprintf(server_img, "%u", aux->id_photo);
+        char *p_array;
+        printf("Reading Picture Byte Array\n");
+        while(total_bytes<photo_size){
+          nbytes = recv(sock_fd_server, p_array, photo_size, 0);
+          if(nbytes<=0)
+            break;
+          p_array  += nbytes;
+          total_bytes += nbytes;
+        }
+        if(total_bytes > photo_size)
+          return -2;
+        //Reconstruct byte array into picture
+        printf("Converting Byte Array to Picture\n");
+        image = fopen( server_img, "wb");
+        fwrite(p_array, photo_size, 1, image);
+        fclose(image);
+
+        printf("Picture Added!\n\n");
       }
     }
 
@@ -281,8 +304,6 @@ int main (){
     exit(-1);
   }
 
-  t_args = malloc(sizeof(new_cli_sock));
-
   while(1){
     /*Listening for new clients connecting(in case more than one connects at the
                                             same time, creates a queue)*/
@@ -293,9 +314,9 @@ int main (){
     client_count++;
     printf("Client Acepted!\nClient Count:%d\n\n", client_count);
 
-    t_args= &new_cli_sock;
+    t_args= new_cli_sock;
     //Creation of the thread that will comunicate with the client
-    iret_c = pthread_create(&thread_c, NULL, cli_com, t_args);
+    iret_c = pthread_create(&thread_c, NULL, cli_com, &t_args);
     if(iret_c){
       perror("Client thread:");
       exit(-1);
@@ -337,6 +358,7 @@ void *cli_com(void *new_cli_sock){
         int retval = 1;
         client_count--;
         printf("A client has left.\nClient Count: %d\n\n", client_count);
+
         pthread_exit ((void*) &retval);
       break;
       }
@@ -383,6 +405,7 @@ void *cli_com(void *new_cli_sock){
         peer_head = NewPeer(peer_head, pi.pic_name, pi.size);
         PrintList(peer_head);
         client_count--;
+
         pthread_exit(NULL);
         break;
       }
@@ -392,6 +415,7 @@ void *cli_com(void *new_cli_sock){
         peer_head = RemovePeer(peer_head, pi.pic_name, pi.size);
         client_count--;
         PrintList(peer_head);
+
         pthread_exit(NULL);
         break;
       }
@@ -466,47 +490,64 @@ void *cli_com(void *new_cli_sock){
         if(keycount != 0)
           free(k_vector);
 
-        pic_info info;
-
+        //char *send_buffer;
+        //size_t fr;
         for(aux = head; aux!=NULL; aux= aux->next){
 
-          FILE *picture;
+          FILE *image;
           long pic_size;
-          //Reading stored picture
+          //Size
           char name[15];
-          sprintf(name, "%"PRIu32, aux->id_photo);
-          picture=fopen(name, "rb");
-          if(picture == NULL){
+          sprintf(name, "%u", aux->id_photo);
+          image = fopen(name, "rb");
+          if(image ==  NULL){
             perror("Filename");
             pic_size = -1;
           }
-          nbytes = send(fd, &aux->id_photo, sizeof(uint32_t), 0);
-          //Searching the beggining and end of the picture
-          fseek(picture, 0, SEEK_END);
-          pic_size = ftell(picture);
-          rewind(picture);
-          //Sending picture size to client_addr
-          nbytes = send(fd, &pic_size, sizeof(pic_size), 0);
+          //Searching the begining of the photo
+          fseek(image, 0, SEEK_END);
+          if(pic_size != -1){
+            pic_size = ftell(image);
+          }
+          rewind(image);
+          printf("Pic_size: %ld\n",pic_size );
+          //Sending pictire size
+          nbytes = send(fd, &pic_size, sizeof(pic_size),0);
           if(nbytes == -1){
             perror("Sending");
-            exit(-1);
+            pthread_exit(NULL);
           }
-          //Sending Picture as byte array
-          char send_buffer[pic_size];
-          size_t fr;
-          while(!feof(picture)){  //Reading file, while it is not the end of file
-            fr=fread(send_buffer ,sizeof(char), sizeof(send_buffer), picture);
+          /*
+        //Sending picture as byte array
+          send_buffer = malloc(sizeof(char)*pic_size);
+          while(!feof(image)){
+            fr=fread(send_buffer, pic_size,1, image);
             if(fr>0){
-              nbytes = send(fd, send_buffer, sizeof(send_buffer), 0);
+              nbytes = send(fd, send_buffer, sizeof(send_buffer),0);
               if(nbytes == -1){
-                perror("Sending:");
-                exit(0);
+                perror("Sending");
+                pthread_exit(NULL);
               }
             }
-            bzero(send_buffer, sizeof(send_buffer));
-          }
-          fclose(picture);
+            bzero(send_buffer, sizeof(*send_buffer));
+            */
 
+            char send_buffer[pic_size];
+            size_t fr;
+            while(!feof(image)){  //Reading file, while it is not the end of file
+              fr=fread(send_buffer ,sizeof(char), sizeof(send_buffer), image);
+              if(fr>0){
+                nbytes = send(fd, send_buffer, sizeof(send_buffer), 0);
+                if(nbytes == -1){
+                  perror("Sending");
+                  return 0;
+                }
+              }
+              bzero(send_buffer, sizeof(send_buffer));
+            }
+            fclose(image);
+      /*    }
+          fclose(image);*/
         }//END FOR
         pthread_exit(NULL);
         break;
@@ -515,7 +556,8 @@ void *cli_com(void *new_cli_sock){
       default:
       {
           printf("Invalid Message Type recived\n");
-          sleep(5);
+
+          pthread_exit(NULL);
           break;
       }
     }
@@ -530,6 +572,8 @@ void Add_picture(int fd, pic_info pi){
   pic_id = 0;
   char server_img[1000];
   char p_array[pi.size];
+
+  printf("Picture size: %u", pi.size);
   FILE *image;
   printf("Picture Size: %d\nPicture Name: %s\n", pi.size, pi.pic_name );
   clock_t current = clock();
@@ -538,12 +582,12 @@ void Add_picture(int fd, pic_info pi){
   //Recive byte image array
   printf("Reading Picture Byte Array\n");
   read(fd, p_array, pi.size);
-  //Adding photo to the photo lista
+  //Adding photo to the photo list
   head = NewPhoto(head, pic_id, pi.pic_name);
   //Reconstruct byte array into picture
   printf("Converting Byte Array to Picture\n");
-  image = fopen( server_img, "w");
-  fwrite(p_array, 1, sizeof(p_array), image);
+  image = fopen( server_img, "wb");
+  fwrite(p_array, pi.size, 1, image);
   fclose(image);
   nbytes = send(fd, &pic_id, sizeof(pic_id), 0);
 
@@ -690,11 +734,13 @@ void Get_picture(int fd, pic_info pi){
       perror("Sending");
       exit(-1);
     }
+
+    printf("Sizeof: %lu", pic_size);
     //Sending Picture as byte array
     char send_buffer[pic_size];
     size_t fr;
     while(!feof(picture)){  //Reading file, while it is not the end of file
-      fr=fread(send_buffer ,sizeof(char), sizeof(send_buffer), picture);
+      fr=fread(send_buffer , pic_size, 1, picture);
       if(fr>0){
         nbytes = send(fd, send_buffer, sizeof(send_buffer), 0);
         if(nbytes == -1){
@@ -734,14 +780,13 @@ static void handle(int sig, siginfo_t *siginfo,void *context){
   sendto(sock_gateway_fd, buff, sizeof(m), 0,
 
                 	  (const struct sockaddr *) &gateway_addr,sizeof(gateway_addr));
+  free(buff);
 
   Broadcast(-19, genlist, npeers);
   close(new_cli_sock);
   close(sock_TCP);
   close(sock_gateway_fd);
   FreePhotoList(head);
-  //PrintPhotoList(head); //debug
-  free(buff);
   free(act);
   exit(0);
 }
@@ -778,6 +823,7 @@ void Broadcast(int messagetype, peerlist *peerlist, int npeers){
       if(nbytes==-1){
         perror("Sending");
       }
+      free(buff);
       close(sock_fd_server);
   }
   PrintList(peer_head);

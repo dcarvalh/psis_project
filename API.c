@@ -144,6 +144,7 @@ uint32_t  gallery_add_photo(int peer_socket, char *file_name){
     return 0;
   }
 
+  printf("Picture size: %u\n", p.size);
   //Sending Picture as byte array
   char send_buffer[p.size];
   size_t fr;
@@ -319,7 +320,7 @@ int gallery_get_photo(int peer_socket, uint32_t id_photo, char *file_name){
     read(peer_socket, p_array, pic_size);
 
     //Reconstructing byte array
-    picture = fopen(file_name, "w");
+    picture = fopen(file_name, "wb");
     fwrite(p_array, 1, sizeof(p_array), picture);
     fclose(picture);
     return 1;
